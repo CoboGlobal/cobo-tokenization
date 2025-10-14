@@ -37,12 +37,7 @@ src/
 │       ├── Utils/             # Utility contracts
 │       └── Errors/            # Error definitions
 ├── deploy/
-│   └── ProxyFactory.sol       # Deployment factory
-└── script/
-    └── DeployLogic.s.sol      # Deployment Logic Contract script
-    └── DeployProxy.s.sol      # Deployment Proxy Contract script
-    └── DeployProxyFactory.s.sol      # Deployment ProxyFactory Contract  script
-    └── DeployProxyMulticall.s.sol      # Deployment Proxy Contract script
+    └── ProxyFactory.sol       # Deployment factory
 ```
 
 ## 🔧 Setup
@@ -90,9 +85,6 @@ forge test -vvv
 The project includes a deployment script that uses a factory pattern for consistent deployments:
 
 ```bash
-forge script script/DeployLogic.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
-forge script script/DeployProxy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
-forge script script/DeployProxyMulticall.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
 ```
 
 ### Manual Deployment
