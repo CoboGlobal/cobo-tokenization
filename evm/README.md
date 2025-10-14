@@ -80,13 +80,6 @@ forge test -vvv
 
 ## 🚀 Deployment
 
-### Using the Deployment Script
-
-The project includes a deployment script that uses a factory pattern for consistent deployments:
-
-```bash
-```
-
 ### Manual Deployment
 
 You can also deploy manually by following these steps:
