@@ -62,8 +62,8 @@ abstract contract ContractUriUpgradeable is Initializable, ContextUpgradeable {
 	 * @param _uri A URI link pointing to the current URI associated with the contract.
 	 */
 	function _updateContractUri(string memory _uri) internal virtual {
-		contractUri = _uri;
 		emit ContractUriUpdated(_msgSender(), contractUri, _uri);
+		contractUri = _uri;
 	}
 
 	/**
