@@ -21,7 +21,7 @@ library FactoryLib {
     }
 }
 
-contract DeployLogic is Script {
+contract DeployCoboERC20Logic is Script {
     using FactoryLib for IFactory;
 
     function setUp() public {}
