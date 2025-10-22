@@ -1,0 +1,1712 @@
+{
+  "address": "2LbadSfQEGMooXUB3tmkXufVGKrQBkjR7UybxnvmwH4L",
+  "metadata": {
+    "name": "tokenization_wrap",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "accept_ownership",
+      "discriminator": [
+        172,
+        23,
+        43,
+        13,
+        238,
+        213,
+        85,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_pending_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "wrapped_mint"
+        },
+        {
+          "name": "wrapped_mint_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "add_role",
+      "discriminator": [
+        45,
+        20,
+        52,
+        132,
+        56,
+        24,
+        179,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "wrapped_mint"
+        },
+        {
+          "name": "wrapped_mint_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_role",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "user",
+          "type": "pubkey"
+        },
+        {
+          "name": "role",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "close_vault",
+      "discriminator": [
+        141,
+        103,
+        17,
+        126,
+        72,
+        75,
+        29,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "unwrapped_mint",
+          "docs": [
+            "The unwrapped mint"
+          ]
+        },
+        {
+          "name": "wrapped_mint"
+        },
+        {
+          "name": "wrapped_mint_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unwrapped_mint_vault",
+          "docs": [
+            "The wrapped mint vault account holding unwrapped tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_mint",
+      "discriminator": [
+        69,
+        44,
+        215,
+        132,
+        253,
+        214,
+        41,
+        45
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "unwrapped_mint"
+        },
+        {
+          "name": "wrapped_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "salt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wrapped_mint_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unwrapped_mint_vault",
+          "docs": [
+            "The wrapped mint vault account holding unwrapped tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "salt",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "name": "uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "recover_mint",
+      "discriminator": [
+        17,
+        84,
+        31,
+        165,
+        50,
+        203,
+        50,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "unwrapped_mint",
+          "docs": [
+            "The unwrapped mint"
+          ]
+        },
+        {
+          "name": "wrapped_mint",
+          "writable": true
+        },
+        {
+          "name": "wrapped_mint_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wrapped_mint_account",
+          "docs": [
+            "Owner's wrapped account (destination)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint_owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "unwrapped_mint_vault",
+          "docs": [
+            "The wrapped mint vault account holding unwrapped tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "remove_role",
+      "discriminator": [
+        74,
+        69,
+        168,
+        163,
+        248,
+        3,
+        130,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "wrapped_mint"
+        },
+        {
+          "name": "wrapped_mint_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_role",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "user",
+          "type": "pubkey"
+        },
+        {
+          "name": "role",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "wrapped_mint_owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "wrapped_mint"
+        },
+        {
+          "name": "wrapped_mint_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "unwrap",
+      "discriminator": [
+        126,
+        175,
+        198,
+        14,
+        212,
+        69,
+        50,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "unwrapped_mint",
+          "docs": [
+            "The unwrapped mint"
+          ]
+        },
+        {
+          "name": "wrapped_mint",
+          "writable": true
+        },
+        {
+          "name": "wrapped_mint_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_role"
+        },
+        {
+          "name": "unwrapped_mint_account",
+          "docs": [
+            "User's unwrapped account (source)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "wrapped_mint_account",
+          "docs": [
+            "User's wrapped account (destination)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "unwrapped_mint_vault",
+          "docs": [
+            "The wrapped mint vault account holding unwrapped tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "wrap",
+      "discriminator": [
+        178,
+        40,
+        10,
+        189,
+        228,
+        129,
+        186,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "unwrapped_mint",
+          "docs": [
+            "The unwrapped mint"
+          ]
+        },
+        {
+          "name": "wrapped_mint",
+          "writable": true
+        },
+        {
+          "name": "wrapped_mint_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  114,
+                  97,
+                  112,
+                  112,
+                  101,
+                  100,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_role"
+        },
+        {
+          "name": "unwrapped_mint_account",
+          "docs": [
+            "User's unwrapped account (source)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "wrapped_mint_account",
+          "docs": [
+            "User's wrapped account (destination)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "unwrapped_mint_vault",
+          "docs": [
+            "The wrapped mint vault account holding unwrapped tokens"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "wrapped_mint"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "unwrapped_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "RoleState",
+      "discriminator": [
+        83,
+        23,
+        33,
+        254,
+        135,
+        132,
+        12,
+        118
+      ]
+    },
+    {
+      "name": "WrappedMintState",
+      "discriminator": [
+        16,
+        229,
+        171,
+        190,
+        232,
+        180,
+        65,
+        177
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CloseUnwrappedMintVaultEvent",
+      "discriminator": [
+        109,
+        83,
+        99,
+        222,
+        103,
+        248,
+        8,
+        179
+      ]
+    },
+    {
+      "name": "CreateMintEvent",
+      "discriminator": [
+        239,
+        193,
+        191,
+        44,
+        156,
+        194,
+        85,
+        141
+      ]
+    },
+    {
+      "name": "RecoverMintEvent",
+      "discriminator": [
+        197,
+        97,
+        82,
+        63,
+        2,
+        22,
+        110,
+        218
+      ]
+    },
+    {
+      "name": "UnwrapEvent",
+      "discriminator": [
+        73,
+        129,
+        203,
+        215,
+        50,
+        111,
+        179,
+        20
+      ]
+    },
+    {
+      "name": "WrapEvent",
+      "discriminator": [
+        148,
+        134,
+        198,
+        142,
+        20,
+        51,
+        173,
+        180
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotOwner",
+      "msg": "Not owner"
+    },
+    {
+      "code": 6001,
+      "name": "NotPendingOwner",
+      "msg": "Not pending owner"
+    },
+    {
+      "code": 6002,
+      "name": "Unauthorized",
+      "msg": "Un authorized"
+    },
+    {
+      "code": 6003,
+      "name": "NameTooLong",
+      "msg": "Name too long"
+    },
+    {
+      "code": 6004,
+      "name": "SymbolTooLong",
+      "msg": "Symbol too long"
+    },
+    {
+      "code": 6005,
+      "name": "UriTooLong",
+      "msg": "URI too long"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidUnwrappedMint",
+      "msg": "Invalid unwrapped mint"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidWrappedMint",
+      "msg": "Invalid wrapped mint"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientBalance",
+      "msg": "Insufficient balance"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidAccountData",
+      "msg": "Invalid account data"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidUnwrappedMintVault",
+      "msg": "Invalid unwrapped mint vault"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidRole",
+      "msg": "Invalid role"
+    }
+  ],
+  "types": [
+    {
+      "name": "CloseUnwrappedMintVaultEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wrapped_mint_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint_state",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint_vault",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMintEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wrapped_mint_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint_state",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecoverMintEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wrapped_mint_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint_vault_balance",
+            "type": "u64"
+          },
+          {
+            "name": "wrapped_mint_total_supply",
+            "type": "u64"
+          },
+          {
+            "name": "recovered_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleKind",
+      "repr": {
+        "kind": "rust"
+      },
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Default"
+          },
+          {
+            "name": "Wrapper"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "RoleKind"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnwrapEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WrapEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WrappedMintState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "salt",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "wrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "wrapped_mint_pending_owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "unwrapped_mint_vault",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}
