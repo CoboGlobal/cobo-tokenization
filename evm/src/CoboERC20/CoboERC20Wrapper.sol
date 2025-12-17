@@ -106,6 +106,7 @@ contract CoboERC20Wrapper is
     /// @notice The decimal of the token.
     uint8 internal _decimals;
 
+    /// @notice The underlying token.
     IERC20 private _underlying;
 
     /**
@@ -133,7 +134,7 @@ contract CoboERC20Wrapper is
     }
 
     /**
-     * @notice This function configures the CoboERC20 contract with the initial state and granting
+     * @notice This function configures the CoboERC20Wrapper contract with the initial state and granting
      * privileged roles.
      *
      * @dev Calling Conditions:
@@ -147,17 +148,22 @@ contract CoboERC20Wrapper is
      * @param admin The address of the admin.
      */
     function initialize(
-        IERC20 underlyingToken,
+        address underlyingToken,
         string calldata name,
         string calldata symbol,
         string calldata uri,
         address admin
     ) external virtual initializer {
-        if (underlyingToken == this) {
+        if (underlyingToken == address(this)) {
             revert ERC20InvalidUnderlying(address(this));
         }
-        _underlying = underlyingToken;
-        _decimals = IERC20Metadata(address(_underlying)).decimals();
+
+        if (underlyingToken == address(0)) {
+            revert ERC20InvalidUnderlying(address(0));
+        }
+
+        _underlying = IERC20(underlyingToken);
+        _decimals = IERC20Metadata(underlyingToken).decimals();
 
         if (admin == address(0)) {
             revert LibErrors.InvalidAddress();
@@ -182,7 +188,7 @@ contract CoboERC20Wrapper is
      * @dev Calling Conditions:
      *
      * - Can only be invoked by the address that has the role "MINTER_ROLE".
-     * - {CoboERC20} is not paused.
+     * - {CoboERC20Wrapper} is not paused.
      * - `to` is a non-zero address. (checked internally by {ERC20Upgradeable}.{_mint})
      * - `to` is allowed to receive tokens.
      *
@@ -200,7 +206,7 @@ contract CoboERC20Wrapper is
      *
      * @dev Calling Conditions:
      *
-     * - {CoboERC20} is not paused.
+     * - {CoboERC20Wrapper} is not paused.
      * - The `sender` is allowed to send tokens. (checked internally by {_requireAccess})
      * - The `to` is allowed to receive tokens. (checked internally by {_requireAccess})
      * - `to` is a non-zero address. (checked internally by {ERC20Upgradeable}.{_transfer})
@@ -227,7 +233,7 @@ contract CoboERC20Wrapper is
      *
      * @dev Calling Conditions:
      *
-     * - {CoboERC20} is not paused.
+     * - {CoboERC20Wrapper} is not paused.
      * - The `from` is allowed to send tokens. (checked internally by {_requireAccess})
      * - The `to` is allowed to receive tokens. (checked internally by {_requireAccess})
      * - `from` is a non-zero address. (checked internally by {ERC20Upgradeable}.{_transfer})
@@ -332,7 +338,7 @@ contract CoboERC20Wrapper is
      * @param amount The amount to be salvaged.
      */
     function salvageERC20(IERC20 token, uint256 amount) external virtual override {
-        if (token == _underlying) {
+        if (address(token) == address(_underlying)) {
             revert ERC20InvalidSalvage();
         }
         if (amount == 0) {
@@ -447,12 +453,14 @@ contract CoboERC20Wrapper is
      */
     function _recover(address account) internal virtual returns (uint256) {
         uint256 value = IERC20(_underlying).balanceOf(address(this)) - totalSupply();
-        _mint(account, value);
+        if (value > 0) {
+            _mint(account, value);
+        }
         return value;
     }
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
     ///      variables without shifting down storage in the inheritance chain.
     ///      See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }
