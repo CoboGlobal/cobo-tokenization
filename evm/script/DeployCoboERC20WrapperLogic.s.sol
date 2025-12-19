@@ -30,8 +30,8 @@ contract DeployCoboERC20WrapperLogic is Script {
         vm.startBroadcast();
         IFactory factory = IFactory(0xC0B000003148E9c3E0D314f3dB327Ef03ADF8Ba7);
         address coboERC20Wrapper = factory.doDeploy(
-            // uint256(bytes32("CoboERC20WrapperLogic")),  // mainnet
-            uint256(bytes32("CoboERC20WrapperLogicTestnet")), // TODO: remove , sepolia testnet
+            uint256(bytes32("CoboERC20WrapperLogic")),  // mainnet
+            // uint256(bytes32("CoboERC20WrapperLogicTestnet")), // TODO: remove , sepolia testnet
             type(CoboERC20Wrapper).creationCode
         );
         console.log("CoboERC20WrapperLogic deployed at", coboERC20Wrapper);
