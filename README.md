@@ -31,7 +31,29 @@ A sophisticated, upgradeable ERC20 token implementation with role-based access c
 | BSC Network      | [`0xaeD271103F86DB5624e69977227e30c3C00D8AEB`](https://bscscan.com/address/0xaeD271103F86DB5624e69977227e30c3C00D8AEB#code) |
 | Arbitrum One Network      | [`0xaeD271103F86DB5624e69977227e30c3C00D8AEB`](https://arbiscan.io/address/0xaeD271103F86DB5624e69977227e30c3C00D8AEB#code) |
 
-# Cobo Tokenization Solana 
+# Cobo Fund Tokenization
+
+A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, bitcoin) into ERC20 share tokens with continuous NAV accrual.
+
+## Features
+- **NAV Oracle**: Continuous APR-based price accrual
+- **Share Token**: ERC20-compliant fund shares with mint/redeem
+- **Asset Vault**: Secure custody with settlement operations
+- **Compliance**: Built-in whitelist and two-step redemption approval
+
+### Logic Contracts (Sepolia Testnet)
+
+| Contract         | Address                                                               |
+|------------------|-----------------------------------------------------------------------|
+| Oracle Logic     | [`0x67b889e668Dc99E5816568774936919e8f58e8E0`](https://sepolia.etherscan.io/address/0x67b889e668Dc99E5816568774936919e8f58e8E0) |
+| FundToken Logic  | [`0x876091AEabd44f6aF6b95C7D44ED0Bf8Cc8333Ed`](https://sepolia.etherscan.io/address/0x876091AEabd44f6aF6b95C7D44ED0Bf8Cc8333Ed) |
+| Vault Logic      | [`0xC76A05636CbD083B760a2215119f9fF534a7CB87`](https://sepolia.etherscan.io/address/0xC76A05636CbD083B760a2215119f9fF534a7CB87) |
+
+📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for deployment and usage.
+
+---
+
+# Cobo Tokenization Solana
 
 ### Contracts
 
