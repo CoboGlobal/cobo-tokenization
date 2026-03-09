@@ -10,9 +10,9 @@ contract DeployMockERC20 is Script {
     function run() public {
         vm.startBroadcast();
 
-        // Deploy Tether Gold (XAUT) mock token
-        MockERC20 xaut = new MockERC20("Tether Gold", "XAUT", 6);
-        console.log("XAUT deployed at:", address(xaut));
+        // Deploy Tether Gold (ASSET) mock token
+        MockERC20 asset = new MockERC20("Tether Gold", "ASSET", 6);
+        console.log("ASSET deployed at:", address(asset));
 
         vm.stopBroadcast();
     }

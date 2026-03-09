@@ -26,18 +26,18 @@ interface IFactory {
 }
 
 /// @title DeployFundProxyTemplate - Parameterized deployment for multiple RWA funds.
-/// @dev Template mode: can deploy multiple fund instances (XAUE, XBTC, XOil, etc.)
+/// @dev Template mode: can deploy multiple fund instances (SHARE, XBTC, XOil, etc.)
 ///
 ///      Required environment variables:
 ///        ORACLE_LOGIC      - CoboFundOracle logic address
 ///        FUNDTOKEN_LOGIC   - CoboFundToken logic address
 ///        VAULT_LOGIC       - CoboFundVault logic address
 ///        ADMIN             - Admin address (receives DEFAULT_ADMIN_ROLE)
-///        UNDERLYING_TOKEN  - Underlying asset address (XAUT, WBTC, etc.)
+///        UNDERLYING_TOKEN  - Underlying asset address (ASSET, WBTC, etc.)
 ///
 ///        # Token configuration
-///        TOKEN_NAME        - e.g., "XAUE Gold Fund"
-///        TOKEN_SYMBOL      - e.g., "XAUE" (used in salt generation)
+///        TOKEN_NAME        - e.g., "SHARE Gold Fund"
+///        TOKEN_SYMBOL      - e.g., "SHARE" (used in salt generation)
 ///        TOKEN_DECIMALS    - e.g., 18
 ///
 ///        # Oracle configuration
@@ -48,7 +48,7 @@ interface IFactory {
 ///        MIN_UPDATE_INTERVAL - e.g., 86400 (1 day)
 ///
 ///        # Token limits
-///        MIN_DEPOSIT_AMOUNT - e.g., 1000000 (1 XAUT if decimals=6)
+///        MIN_DEPOSIT_AMOUNT - e.g., 1000000 (1 ASSET if decimals=6)
 ///        MIN_REDEEM_SHARES  - e.g., 1000000000000000000 (1 share if decimals=18)
 ///
 ///        # Optional: salt suffix for unique deployment

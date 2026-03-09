@@ -102,7 +102,7 @@ contract FundNumericalTest is FundTestBase {
     function test_NUM_1_decConvert_6_18_nav1e18() public {
         // Default setup: asset=6, share=18, NAV=1e18
         uint256 shares = _deposit(user1, 1e6);
-        assertEq(shares, 1e18, "NUM-1: 1 XAUT should yield 1e18 shares at NAV=1");
+        assertEq(shares, 1e18, "NUM-1: 1 ASSET should yield 1e18 shares at NAV=1");
     }
 
     /// @dev NUM-2: asset=6, share=18, NAV=2e18. 1e6 asset → 5e17 shares.
@@ -115,7 +115,7 @@ contract FundNumericalTest is FundTestBase {
 
         vm.prank(user1);
         uint256 shares = nav2.mint(1e6);
-        assertEq(shares, 5e17, "NUM-2: 1 XAUT at NAV=2 should yield 0.5e18 shares");
+        assertEq(shares, 5e17, "NUM-2: 1 ASSET at NAV=2 should yield 0.5e18 shares");
     }
 
     /// @dev NUM-3: asset=6, share=18, NAV=1000e18 (1000:1 scenario).
@@ -128,7 +128,7 @@ contract FundNumericalTest is FundTestBase {
 
         vm.prank(user1);
         uint256 shares = nav3.mint(1e6);
-        assertEq(shares, 1e15, "NUM-3: 1 XAUT at NAV=1000 should yield 1e15 shares");
+        assertEq(shares, 1e15, "NUM-3: 1 ASSET at NAV=1000 should yield 1e15 shares");
     }
 
     /// @dev NUM-4: asset=18, share=18, NAV=1e18 (same decimals, 1:1).
@@ -201,21 +201,21 @@ contract FundNumericalTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════
 
     /// @dev NUM-9: deposit→redeem round-trip at NAV=1e18.
-    ///      mint(xautAmount) → requestRedemption(all shares).
-    ///      xautBack <= xautAmount, precision loss <= 1 min unit.
+    ///      mint(assetAmount) → requestRedemption(all shares).
+    ///      assetBack <= assetAmount, precision loss <= 1 min unit.
     function test_NUM_9_roundTrip_nav1e18() public {
-        uint256 xautAmount = 100e6; // 100 XAUT
-        uint256 shares = _deposit(user1, xautAmount);
+        uint256 assetAmount = 100e6; // 100 ASSET
+        uint256 shares = _deposit(user1, assetAmount);
 
         // Request redemption of all shares
         uint256 reqId = _requestRedemption(user1, shares);
 
-        // Check stored xautAmount
-        (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
+        // Check stored assetAmount
+        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
 
         // At NAV=1.0: round-trip should be exact
-        assertLe(xautBack, xautAmount, "NUM-9: xautBack must not exceed original deposit");
-        assertGe(xautBack + 1, xautAmount, "NUM-9: precision loss should be <= 1 min unit");
+        assertLe(assetBack, assetAmount, "NUM-9: assetBack must not exceed original deposit");
+        assertGe(assetBack + 1, assetAmount, "NUM-9: precision loss should be <= 1 min unit");
     }
 
     /// @dev NUM-10: deposit→redeem round-trip at NAV=1.05e18.
@@ -224,43 +224,43 @@ contract FundNumericalTest is FundTestBase {
         // Advance 365 days: NAV = 1e18 + 1e18 * 5e16 * 365d / (365d * 1e18) = 1.05e18
         vm.warp(block.timestamp + 365 days);
 
-        uint256 xautAmount = 100e6;
-        uint256 shares = _deposit(user1, xautAmount);
+        uint256 assetAmount = 100e6;
+        uint256 shares = _deposit(user1, assetAmount);
 
         // Request redemption of all shares at the same NAV
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
 
-        // Round-trip: xautBack <= xautAmount, loss <= 1 min unit
-        assertLe(xautBack, xautAmount, "NUM-10: xautBack must not exceed original deposit");
-        assertGe(xautBack + 1, xautAmount, "NUM-10: precision loss should be <= 1 min unit");
+        // Round-trip: assetBack <= assetAmount, loss <= 1 min unit
+        assertLe(assetBack, assetAmount, "NUM-10: assetBack must not exceed original deposit");
+        assertGe(assetBack + 1, assetAmount, "NUM-10: precision loss should be <= 1 min unit");
     }
 
     /// @dev NUM-11: large round-trip: mint(1_000_000e6) → redeem all.
     ///      Precision loss <= 1 min unit.
     function test_NUM_11_roundTrip_large() public {
-        uint256 xautAmount = 1_000_000e6; // 1M XAUT
-        xaut.mint(user1, xautAmount); // Fund extra
+        uint256 assetAmount = 1_000_000e6; // 1M ASSET
+        asset.mint(user1, assetAmount); // Fund extra
 
-        uint256 shares = _deposit(user1, xautAmount);
+        uint256 shares = _deposit(user1, assetAmount);
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
 
-        assertLe(xautBack, xautAmount, "NUM-11: xautBack must not exceed original");
-        assertGe(xautBack + 1, xautAmount, "NUM-11: precision loss should be <= 1 min unit");
+        assertLe(assetBack, assetAmount, "NUM-11: assetBack must not exceed original");
+        assertGe(assetBack + 1, assetAmount, "NUM-11: precision loss should be <= 1 min unit");
     }
 
     /// @dev NUM-12: small round-trip: mint(minDepositAmount) → redeem all.
     ///      Precision loss within acceptable range.
     function test_NUM_12_roundTrip_small() public {
-        uint256 xautAmount = MIN_DEPOSIT_AMOUNT; // 1e6 = 1 XAUT
-        uint256 shares = _deposit(user1, xautAmount);
+        uint256 assetAmount = MIN_DEPOSIT_AMOUNT; // 1e6 = 1 ASSET
+        uint256 shares = _deposit(user1, assetAmount);
 
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
 
-        assertLe(xautBack, xautAmount, "NUM-12: xautBack must not exceed original");
-        assertGe(xautBack + 1, xautAmount, "NUM-12: precision loss should be <= 1 min unit");
+        assertLe(assetBack, assetAmount, "NUM-12: assetBack must not exceed original");
+        assertGe(assetBack + 1, assetAmount, "NUM-12: precision loss should be <= 1 min unit");
     }
 
     /// @dev NUM-13: reverse round-trip verification.
@@ -293,7 +293,7 @@ contract FundNumericalTest is FundTestBase {
 
         uint256 totalDeposited = 0;
         uint256 totalRedeemed = 0;
-        uint256 singleAmount = 1e6; // 1 XAUT per mint
+        uint256 singleAmount = 1e6; // 1 ASSET per mint
 
         // 10 small mints
         for (uint256 i = 0; i < 10; i++) {
@@ -308,16 +308,16 @@ contract FundNumericalTest is FundTestBase {
         uint256 sharePerRedeem = totalShares / 10;
         for (uint256 i = 0; i < 9; i++) {
             uint256 reqId = _requestRedemption(user1, sharePerRedeem);
-            (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
-            totalRedeemed += xautBack;
+            (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+            totalRedeemed += assetBack;
         }
 
         // Redeem remaining shares
         uint256 remaining = fundToken.balanceOf(user1);
         if (remaining >= MIN_REDEEM_SHARES) {
             uint256 reqId = _requestRedemption(user1, remaining);
-            (,, uint256 xautBack,,,) = fundToken.redemptions(reqId);
-            totalRedeemed += xautBack;
+            (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+            totalRedeemed += assetBack;
         }
 
         // Cumulative loss should be small: <= 10 min units for 10 operations
@@ -336,7 +336,7 @@ contract FundNumericalTest is FundTestBase {
         uint256 hugeAmount = type(uint128).max;
 
         // Fund user with huge amount
-        xaut.mint(user1, hugeAmount);
+        asset.mint(user1, hugeAmount);
 
         // Set minDeposit to allow
         vm.prank(admin);

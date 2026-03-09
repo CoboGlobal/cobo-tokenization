@@ -386,7 +386,7 @@ contract CoboFundOracleTest is FundTestBase {
     function test_rescueERC20_revert_zeroRecipient() public {
         vm.prank(admin);
         vm.expectRevert(LibFundErrors.ZeroAddress.selector);
-        oracle.rescueERC20(address(xaut), address(0), 1);
+        oracle.rescueERC20(address(asset), address(0), 1);
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
 # Cobo Fund Tokenization
 
-A NAV-based fund tokenization system that wraps real-world assets (e.g. XAUT gold) into ERC20 share tokens with continuous NAV accrual, built using Foundry and OpenZeppelin v5 upgradeable contracts.
+A NAV-based fund tokenization system that wraps real-world assets into ERC20 share tokens with continuous NAV accrual, built using Foundry and OpenZeppelin v5 upgradeable contracts.
 
 ## Architecture
 
@@ -51,7 +51,7 @@ Test files:
 
 ## Deployment
 
-Deploy logic contracts once, then deploy multiple product instances (XAUE, XBTC, etc.).
+Deploy logic contracts once, then deploy multiple product instances with different underlying assets.
 
 ### Step 1: Deploy logic contracts
 

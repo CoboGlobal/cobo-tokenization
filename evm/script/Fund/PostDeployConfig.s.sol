@@ -6,8 +6,8 @@ import {CoboFundOracle} from "../src/Fund/CoboFundOracle.sol";
 import {CoboFundToken} from "../src/Fund/CoboFundToken.sol";
 import {CoboFundVault} from "../src/Fund/CoboFundVault.sol";
 
-/// @title PostDeployConfig - Post-deployment role and whitelist configuration for XAUE.
-/// @dev Run after DeployFundProxy.s.sol to configure all roles and whitelists per XAUE Transaction Checklist §2.
+/// @title PostDeployConfig - Post-deployment role and whitelist configuration for SHARE.
+/// @dev Run after DeployFundProxy.s.sol to configure all roles and whitelists per SHARE Transaction Checklist §2.
 ///
 ///      The broadcaster MUST be the DEFAULT_ADMIN_ROLE holder (the Safe multisig or admin EOA
 ///      that was passed as `admin` during deployment).
@@ -101,13 +101,13 @@ contract PostDeployConfig is Script {
 
         // ─── 5. Vault: Grant SETTLEMENT_OPERATOR_ROLE ───────────────────
         // SETTLEMENT_OPERATOR_ROLE holders can call Vault.withdraw to transfer
-        // XAUT to whitelisted settlement target addresses.
+        // ASSET to whitelisted settlement target addresses.
         console.log("[5/6] Vault: granting SETTLEMENT_OPERATOR_ROLE...");
         vault.grantRole(vault.SETTLEMENT_OPERATOR_ROLE(), settlementOperator);
 
         // ─── 6. Vault: Whitelist settlement target addresses ────────────
         // These are the custody/project addresses that the settlement operator
-        // can withdraw XAUT to.
+        // can withdraw ASSET to.
         if (bytes(settlementTargetsRaw).length > 0) {
             console.log("[6/6] Vault: whitelisting settlement targets...");
             address[] memory targets = _parseAddressList(settlementTargetsRaw);
