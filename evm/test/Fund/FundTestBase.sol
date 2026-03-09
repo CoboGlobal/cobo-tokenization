@@ -15,7 +15,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 /// @dev Base test contract with full deployment setup for all Fund contracts.
 abstract contract FundTestBase is Test {
     // ─── Contracts ──────────────────────────────────────────────────────
-    MockERC20 public xaut;
+    MockERC20 public asset;
     CoboFundOracle public oracle;
     CoboFundToken public fundToken;
     CoboFundVault public vault;
@@ -45,10 +45,10 @@ abstract contract FundTestBase is Test {
     uint256 public constant MAX_APR = 1e17; // 10%
     uint256 public constant MAX_APR_DELTA = 5e16; // 5%
     uint256 public constant MIN_UPDATE_INTERVAL = 1 days;
-    uint256 public constant MIN_DEPOSIT_AMOUNT = 1e6; // 1 XAUT
-    uint256 public constant MIN_REDEEM_SHARES = 1e18; // 1 XAUE
-    uint8 public constant XAUT_DECIMALS = 6;
-    uint8 public constant XAUE_DECIMALS = 18;
+    uint256 public constant MIN_DEPOSIT_AMOUNT = 1e6; // 1 ASSET
+    uint256 public constant MIN_REDEEM_SHARES = 1e18; // 1 SHARE
+    uint8 public constant ASSET_DECIMALS = 6;
+    uint8 public constant SHARE_DECIMALS = 18;
 
     // ─── Roles ──────────────────────────────────────────────────────────
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
@@ -60,8 +60,8 @@ abstract contract FundTestBase is Test {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     function setUp() public virtual {
-        // Deploy mock XAUT
-        xaut = new MockERC20("Tether Gold", "XAUT", XAUT_DECIMALS);
+        // Deploy mock ASSET
+        asset = new MockERC20("Tether Gold", "ASSET", ASSET_DECIMALS);
 
         // Deploy logic implementations
         oracleImpl = new CoboFundOracle();
@@ -104,10 +104,10 @@ abstract contract FundTestBase is Test {
         bytes memory fundTokenInit = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "XAUE Gold Fund",
-                "XAUE",
-                XAUE_DECIMALS,
-                address(xaut),
+                "SHARE Gold Fund",
+                "SHARE",
+                SHARE_DECIMALS,
+                address(asset),
                 address(oracle),
                 predictedVault,
                 admin,
@@ -118,7 +118,7 @@ abstract contract FundTestBase is Test {
         fundToken = CoboFundToken(address(new ERC1967Proxy(address(fundTokenImpl), fundTokenInit)));
 
         // Deploy Vault proxy
-        bytes memory vaultInit = abi.encodeCall(CoboFundVault.initialize, (address(xaut), address(fundToken), admin));
+        bytes memory vaultInit = abi.encodeCall(CoboFundVault.initialize, (address(asset), address(fundToken), admin));
         vault = CoboFundVault(address(new ERC1967Proxy(address(vaultImpl), vaultInit)));
 
         // Verify prediction was correct
@@ -154,31 +154,31 @@ abstract contract FundTestBase is Test {
         vm.stopPrank();
 
         // ─── Fund users ──────────────────────────────────
-        xaut.mint(user1, 1000e6); // 1000 XAUT
-        xaut.mint(user2, 1000e6);
-        xaut.mint(user3, 1000e6);
+        asset.mint(user1, 1000e6); // 1000 ASSET
+        asset.mint(user2, 1000e6);
+        asset.mint(user3, 1000e6);
 
-        // Users approve Nav4626 to spend their XAUT
+        // Users approve Nav4626 to spend their ASSET
         vm.prank(user1);
-        xaut.approve(address(fundToken), type(uint256).max);
+        asset.approve(address(fundToken), type(uint256).max);
         vm.prank(user2);
-        xaut.approve(address(fundToken), type(uint256).max);
+        asset.approve(address(fundToken), type(uint256).max);
         vm.prank(user3);
-        xaut.approve(address(fundToken), type(uint256).max);
+        asset.approve(address(fundToken), type(uint256).max);
     }
 
     // ─── Helper Functions ────────────────────────────────────────────────
 
-    /// @dev Deposit xautAmount for a user and return shares minted.
-    function _deposit(address user, uint256 xautAmount) internal returns (uint256 shares) {
+    /// @dev Deposit assetAmount for a user and return shares minted.
+    function _deposit(address user, uint256 assetAmount) internal returns (uint256 shares) {
         vm.prank(user);
-        shares = fundToken.mint(xautAmount);
+        shares = fundToken.mint(assetAmount);
     }
 
     /// @dev Request redemption for a user and return reqId.
-    function _requestRedemption(address user, uint256 xaueAmount) internal returns (uint256 reqId) {
+    function _requestRedemption(address user, uint256 shareAmount) internal returns (uint256 reqId) {
         vm.prank(user);
-        reqId = fundToken.requestRedemption(xaueAmount);
+        reqId = fundToken.requestRedemption(shareAmount);
     }
 
     /// @dev Advance time and optionally update the oracle rate.

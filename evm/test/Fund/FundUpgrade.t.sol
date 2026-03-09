@@ -284,7 +284,7 @@ contract FundUpgradeTest is FundTestBase {
     /// @dev OZ-UUPS-4a: Direct call initialize on Nav4626 implementation
     function test_OZ_UUPS_4a_directInitializeNav4626Impl() public {
         vm.expectRevert();
-        fundTokenImpl.initialize("X", "X", 18, address(xaut), address(oracle), address(vault), admin, 1, 1);
+        fundTokenImpl.initialize("X", "X", 18, address(asset), address(oracle), address(vault), admin, 1, 1);
     }
 
     // ─── NavOracle Upgrades ───────────────────────────────────────────────
@@ -354,7 +354,7 @@ contract FundUpgradeTest is FundTestBase {
     /// @dev OZ-UUPS-4c: Direct call initialize on NavVault implementation
     function test_OZ_UUPS_4c_directInitializeNavVaultImpl() public {
         vm.expectRevert();
-        vaultImpl.initialize(address(xaut), address(fundToken), admin);
+        vaultImpl.initialize(address(asset), address(fundToken), admin);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -367,7 +367,7 @@ contract FundUpgradeTest is FundTestBase {
     function test_UPG_1_v1ToV2StatePreserved() public {
         // --- Establish V1 state ---
 
-        // 1) user1 deposits 100 XAUT
+        // 1) user1 deposits 100 ASSET
         uint256 depositShares = _deposit(user1, 100e6);
 
         // 2) user1 requests redemption for half
@@ -412,7 +412,7 @@ contract FundUpgradeTest is FundTestBase {
         uint256 v1_oMinUpdateInterval = oracle.minUpdateInterval();
 
         // Record Vault V1 state
-        uint256 v1_vaultXautBalance = xaut.balanceOf(address(vault));
+        uint256 v1_vaultXautBalance = asset.balanceOf(address(vault));
         bool v1_vaultWL_user1 = vault.whitelist(user1);
 
         // --- Upgrade all three contracts ---
@@ -445,8 +445,8 @@ contract FundUpgradeTest is FundTestBase {
         ) = fundToken.redemptions(reqId);
         assertEq(v2_rId, v1_rId, "redemption id changed");
         assertEq(v2_rUser, v1_rUser, "redemption user changed");
-        assertEq(v2_rXaut, v1_rXaut, "redemption xautAmount changed");
-        assertEq(v2_rXaue, v1_rXaue, "redemption xaueAmount changed");
+        assertEq(v2_rXaut, v1_rXaut, "redemption assetAmount changed");
+        assertEq(v2_rXaue, v1_rXaue, "redemption shareAmount changed");
         assertEq(v2_rAt, v1_rAt, "redemption requestedAt changed");
         assertEq(uint256(v2_rStatus), uint256(v1_rStatus), "redemption status changed");
 
@@ -458,7 +458,7 @@ contract FundUpgradeTest is FundTestBase {
         assertEq(oracle.minUpdateInterval(), v1_oMinUpdateInterval, "oracle minUpdateInterval changed");
 
         // --- Verify Vault state preserved ---
-        assertEq(xaut.balanceOf(address(vault)), v1_vaultXautBalance, "vault XAUT balance changed");
+        assertEq(asset.balanceOf(address(vault)), v1_vaultXautBalance, "vault ASSET balance changed");
         assertEq(vault.whitelist(user1), v1_vaultWL_user1, "vault whitelist user1 changed");
     }
 
@@ -651,8 +651,8 @@ contract FundUpgradeTest is FundTestBase {
         assertEq(vaultV2.versionV2(), "v2", "Vault V2 function failed");
 
         // Verify system still works: settlement operator can withdraw
-        // Fund vault first if needed — vault should still have XAUT from user2's deposit
-        uint256 vaultBalance = xaut.balanceOf(address(vault));
+        // Fund vault first if needed — vault should still have ASSET from user2's deposit
+        uint256 vaultBalance = asset.balanceOf(address(vault));
         if (vaultBalance > 0) {
             vm.prank(settlementOperator);
             vault.withdraw(user1, vaultBalance);

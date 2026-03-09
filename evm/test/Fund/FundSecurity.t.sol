@@ -159,7 +159,7 @@ contract ReentrantERC20ForRedemption is ERC20 {
 /// @dev ERC20 that calls back into Nav4626.mint() during transfer (not transferFrom).
 /// Used for forceRedeem reentrancy test — forceRedeem doesn't call any external ERC20.
 /// However, approveRedemption calls safeTransferFrom(vault, user, ...) which involves
-/// the xaut token. For forceRedeem, there's NO external call that can be hooked.
+/// the asset token. For forceRedeem, there's NO external call that can be hooked.
 /// We test defense-in-depth by verifying the nonReentrant modifier is present.
 
 /// @dev Oracle returning configurable values for oracle manipulation tests.
@@ -324,11 +324,11 @@ contract FundSecurityTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════════
 
     /// @dev SEC-RE-1: mint reentrancy via malicious ERC20 callback.
-    /// Deploys MaliciousERC20 as xaut, in transferFrom callback reenters mint().
+    /// Deploys MaliciousERC20 as asset, in transferFrom callback reenters mint().
     /// Expected: revert with ReentrancyGuardReentrantCall.
     function test_SEC_RE_1_mintReentrancy() public {
-        // Deploy malicious ERC20 as xaut replacement
-        MaliciousERC20 malToken = new MaliciousERC20("Malicious XAUT", "MAL", XAUT_DECIMALS);
+        // Deploy malicious ERC20 as asset replacement
+        MaliciousERC20 malToken = new MaliciousERC20("Malicious ASSET", "MAL", ASSET_DECIMALS);
 
         // Deploy fresh system with malicious token
         CoboFundOracle secOracle = _deployFreshOracle();
@@ -359,7 +359,7 @@ contract FundSecurityTest is FundTestBase {
     /// reentrant caller (ERC20 contract) is not whitelisted, so the call reverts.
     function test_SEC_RE_2_requestRedemptionReentrancy() public {
         // Deploy a reentrant ERC20 that calls requestRedemption during transferFrom
-        ReentrantERC20ForRedemption reToken = new ReentrantERC20ForRedemption("RE", "RE", XAUT_DECIMALS);
+        ReentrantERC20ForRedemption reToken = new ReentrantERC20ForRedemption("RE", "RE", ASSET_DECIMALS);
 
         SimpleOracle simpleOracle = new SimpleOracle();
         simpleOracle.setPrice(1e18);
@@ -416,12 +416,12 @@ contract FundSecurityTest is FundTestBase {
         // The nonReentrant modifier provides defense-in-depth.
     }
 
-    /// @dev SEC-RE-4: approveRedemption reentrancy via malicious XAUT transferFrom callback.
-    /// Malicious XAUT in transferFrom callback reenters approveRedemption.
+    /// @dev SEC-RE-4: approveRedemption reentrancy via malicious ASSET transferFrom callback.
+    /// Malicious ASSET in transferFrom callback reenters approveRedemption.
     /// Expected: revert with nonReentrant.
     function test_SEC_RE_4_approveRedemptionReentrancy() public {
         // Deploy malicious ERC20 for approve reentrancy
-        MaliciousERC20ForApprove malToken = new MaliciousERC20ForApprove("MAL", "MAL", XAUT_DECIMALS);
+        MaliciousERC20ForApprove malToken = new MaliciousERC20ForApprove("MAL", "MAL", ASSET_DECIMALS);
 
         CoboFundOracle secOracle = _deployFreshOracle();
         (CoboFundToken secNav, CoboFundVault secVault) =
@@ -449,7 +449,7 @@ contract FundSecurityTest is FundTestBase {
         // Request two redemptions
         vm.prank(user1);
         uint256 reqId = secNav.requestRedemption(50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = secNav.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = secNav.redemptions(reqId);
 
         // Fund vault for payout
         malToken.mint(address(secVault), 1000e6);
@@ -466,7 +466,7 @@ contract FundSecurityTest is FundTestBase {
         // Attempt approve — transferFrom reenters approveRedemption for reqId2
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSignature("ReentrancyGuardReentrantCall()"));
-        secNav.approveRedemption(reqId, user1, xautAmt, xaueAmt);
+        secNav.approveRedemption(reqId, user1, assetAmt, shareAmt);
     }
 
     /// @dev SEC-RE-5: rejectRedemption has nonReentrant for defense-in-depth.
@@ -478,11 +478,11 @@ contract FundSecurityTest is FundTestBase {
         // Deposit and create a redemption
         _deposit(user1, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
         // Verify rejectRedemption works normally (nonReentrant doesn't block normal calls)
         vm.prank(redemptionApprover);
-        fundToken.rejectRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
         // Verify shares were returned
         assertEq(fundToken.balanceOf(user1), 100e18);
@@ -496,7 +496,7 @@ contract FundSecurityTest is FundTestBase {
     /// Expected: revert with ReentrancyGuardReentrantCall.
     function test_SEC_RE_6_vaultWithdrawReentrancy() public {
         // Deploy malicious ERC20 for vault reentrancy
-        MaliciousERC20ForVault malToken = new MaliciousERC20ForVault("MAL", "MAL", XAUT_DECIMALS);
+        MaliciousERC20ForVault malToken = new MaliciousERC20ForVault("MAL", "MAL", ASSET_DECIMALS);
 
         // Deploy fresh system with malicious token
         CoboFundOracle secOracle = _deployFreshOracle();
@@ -511,9 +511,9 @@ contract FundSecurityTest is FundTestBase {
         bytes memory navInit = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "XAUE",
-                "XAUE",
-                XAUE_DECIMALS,
+                "SHARE",
+                "SHARE",
+                SHARE_DECIMALS,
                 address(malToken),
                 address(secOracle),
                 predictedVault,
@@ -568,15 +568,15 @@ contract FundSecurityTest is FundTestBase {
         _deposit(user1, 100e6);
 
         // Verify both contracts are independently callable
-        assertEq(xaut.balanceOf(address(vault)), 100e6);
+        assertEq(asset.balanceOf(address(vault)), 100e6);
         assertGt(fundToken.balanceOf(user1), 0);
 
         // Normal cross-contract interaction (approveRedemption does transferFrom on vault)
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
-        fundToken.approveRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
         // Verify it worked — no cross-contract reentrancy block
         (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
@@ -597,13 +597,13 @@ contract FundSecurityTest is FundTestBase {
         // Attacker calls initialize first
         vm.prank(attacker);
         CoboFundToken(address(proxy))
-            .initialize("ATK", "ATK", 18, address(xaut), address(oracle), address(vault), attacker, 1, 1);
+            .initialize("ATK", "ATK", 18, address(asset), address(oracle), address(vault), attacker, 1, 1);
 
         // Deployer tries to initialize — should revert (already initialized)
         vm.prank(admin);
         vm.expectRevert();
         CoboFundToken(address(proxy))
-            .initialize("XAUE", "XAUE", 18, address(xaut), address(oracle), address(vault), admin, 1, 1);
+            .initialize("SHARE", "SHARE", 18, address(asset), address(oracle), address(vault), admin, 1, 1);
     }
 
     /// @dev SEC-INIT-2: Direct initialize on implementation contracts.
@@ -611,7 +611,7 @@ contract FundSecurityTest is FundTestBase {
     function test_SEC_INIT_2_directInitializeOnImpl() public {
         // Try to call initialize directly on Nav4626 implementation
         vm.expectRevert();
-        fundTokenImpl.initialize("X", "X", 18, address(xaut), address(oracle), address(vault), admin, 1, 1);
+        fundTokenImpl.initialize("X", "X", 18, address(asset), address(oracle), address(vault), admin, 1, 1);
 
         // Try to call initialize directly on NavOracle implementation
         vm.expectRevert();
@@ -619,7 +619,7 @@ contract FundSecurityTest is FundTestBase {
 
         // Try to call initialize directly on Vault implementation
         vm.expectRevert();
-        vaultImpl.initialize(address(xaut), address(fundToken), admin);
+        vaultImpl.initialize(address(asset), address(fundToken), admin);
     }
 
     /// @dev SEC-INIT-3: Selfdestruct on implementation.
@@ -655,7 +655,7 @@ contract FundSecurityTest is FundTestBase {
         vm.prank(admin);
         fundToken.setOracle(address(malOracle));
 
-        // With price=1, user deposits 1 XAUT (1e6) and gets enormous shares
+        // With price=1, user deposits 1 ASSET (1e6) and gets enormous shares
         // shares = 1e6 * 1e12 * 1e18 / 1 = 1e36
         vm.prank(user1);
         uint256 shares = fundToken.mint(1e6);
@@ -665,7 +665,7 @@ contract FundSecurityTest is FundTestBase {
     }
 
     /// @dev SEC-ORA-2: Malicious Oracle returns type(uint256).max.
-    /// requestRedemption: xautAmount could be extremely large.
+    /// requestRedemption: assetAmount could be extremely large.
     function test_SEC_ORA_2_oracleReturnsMaxUint() public {
         // First deposit at normal price
         _deposit(user1, 100e6);
@@ -677,8 +677,8 @@ contract FundSecurityTest is FundTestBase {
         vm.prank(admin);
         fundToken.setOracle(address(malOracle));
 
-        // Request redemption — xautAmount = shares * maxUint / (1e12 * 1e18)
-        // This could overflow or produce extremely large xautAmount
+        // Request redemption — assetAmount = shares * maxUint / (1e12 * 1e18)
+        // This could overflow or produce extremely large assetAmount
         // With 100e18 shares * type(uint256).max / (1e12 * 1e18) = 100 * type(uint256).max / 1e12
         // This should overflow in multiplication: 100e18 * type(uint256).max
         vm.prank(user1);
@@ -699,7 +699,7 @@ contract FundSecurityTest is FundTestBase {
         vm.prank(admin);
         fundToken.setOracle(address(malOracle));
 
-        // Mint sees price 1e18: 10 XAUT → 10 XAUE
+        // Mint sees price 1e18: 10 ASSET → 10 SHARE
         vm.prank(user1);
         uint256 shares = fundToken.mint(10e6);
         assertEq(shares, 10e18); // 10e6 * 1e12 * 1e18 / 1e18
@@ -707,15 +707,15 @@ contract FundSecurityTest is FundTestBase {
         // Change oracle price to 2e18 (simulating oracle manipulation within same block)
         malOracle.setPrice(2e18);
 
-        // requestRedemption sees price 2e18: 10 XAUE → 20 XAUT
+        // requestRedemption sees price 2e18: 10 SHARE → 20 ASSET
         vm.prank(user1);
         uint256 reqId = fundToken.requestRedemption(10e18);
 
-        (,, uint256 xautAmt,,,) = fundToken.redemptions(reqId);
-        // xautAmount = 10e18 * 2e18 / (1e12 * 1e18) = 20e6
-        assertEq(xautAmt, 20e6);
+        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        // assetAmount = 10e18 * 2e18 / (1e12 * 1e18) = 20e6
+        assertEq(assetAmt, 20e6);
 
-        // User deposited 10 XAUT but can claim 20 XAUT — demonstrates oracle manipulation risk.
+        // User deposited 10 ASSET but can claim 20 ASSET — demonstrates oracle manipulation risk.
         // In production, the oracle uses linear interpolation (CoboFundOracle) which cannot
         // have such drastic intra-block changes. The risk exists only if setOracle is compromised.
     }
@@ -773,7 +773,7 @@ contract FundSecurityTest is FundTestBase {
         // If vault is address(0), setVault prevents it. Let's use an address that
         // will cause the transfer to fail by zeroing the user's balance first.
 
-        uint256 userBalBefore = xaut.balanceOf(user1);
+        uint256 userBalBefore = asset.balanceOf(user1);
         uint256 userSharesBefore = fundToken.balanceOf(user1);
 
         // Try to mint more than user has — safeTransferFrom will fail
@@ -782,7 +782,7 @@ contract FundSecurityTest is FundTestBase {
         fundToken.mint(2000e6); // user only has 1000e6
 
         // Verify atomicity: user state unchanged
-        assertEq(xaut.balanceOf(user1), userBalBefore);
+        assertEq(asset.balanceOf(user1), userBalBefore);
         assertEq(fundToken.balanceOf(user1), userSharesBefore);
     }
 
@@ -792,14 +792,14 @@ contract FundSecurityTest is FundTestBase {
     function test_SEC_FUND_2_vaultMaxApproveExploit() public {
         // First, fund the vault
         _deposit(user1, 100e6);
-        assertEq(xaut.balanceOf(address(vault)), 100e6);
+        assertEq(asset.balanceOf(address(vault)), 100e6);
 
         // Verify vault has max approval for fundToken
-        uint256 allowance = xaut.allowance(address(vault), address(fundToken));
+        uint256 allowance = asset.allowance(address(vault), address(fundToken));
         assertEq(allowance, type(uint256).max);
 
         // Simulate: admin calls setFundToken(malicious) on vault
-        // The malicious contract could then call xaut.transferFrom(vault, attacker, all)
+        // The malicious contract could then call asset.transferFrom(vault, attacker, all)
         // We don't deploy an actual malicious fundToken drainer — we demonstrate the mechanism:
 
         // After setFundToken is called, old fundToken's approval is revoked, new one gets max approval
@@ -809,45 +809,45 @@ contract FundSecurityTest is FundTestBase {
         vault.setFundToken(malicious);
 
         // Old fundToken approval is now 0
-        assertEq(xaut.allowance(address(vault), address(fundToken)), 0);
+        assertEq(asset.allowance(address(vault), address(fundToken)), 0);
         // New (malicious) address has max approval
-        assertEq(xaut.allowance(address(vault), malicious), type(uint256).max);
+        assertEq(asset.allowance(address(vault), malicious), type(uint256).max);
 
         // The malicious contract could now drain via:
-        // xaut.transferFrom(vault, attacker, vault.balance)
+        // asset.transferFrom(vault, attacker, vault.balance)
         // This demonstrates why setFundToken MUST be protected by multi-sig + timelock
         vm.prank(malicious);
-        xaut.transferFrom(address(vault), attacker, 100e6);
+        asset.transferFrom(address(vault), attacker, 100e6);
 
-        assertEq(xaut.balanceOf(address(vault)), 0);
-        assertEq(xaut.balanceOf(attacker), 100e6);
+        assertEq(asset.balanceOf(address(vault)), 0);
+        assertEq(asset.balanceOf(attacker), 100e6);
     }
 
     /// @dev SEC-FUND-3: Old vault funds stranded after vault replacement.
-    /// After setVault(newVault), old vault still has XAUT that needs separate handling.
+    /// After setVault(newVault), old vault still has ASSET that needs separate handling.
     function test_SEC_FUND_3_oldVaultFundsStranded() public {
         // Deposit to fill original vault
         _deposit(user1, 100e6);
-        assertEq(xaut.balanceOf(address(vault)), 100e6);
+        assertEq(asset.balanceOf(address(vault)), 100e6);
 
         // Deploy new vault
         CoboFundVault newVaultImpl = new CoboFundVault();
-        bytes memory newVaultInit = abi.encodeCall(CoboFundVault.initialize, (address(xaut), address(fundToken), admin));
+        bytes memory newVaultInit = abi.encodeCall(CoboFundVault.initialize, (address(asset), address(fundToken), admin));
         CoboFundVault newVault = CoboFundVault(address(new ERC1967Proxy(address(newVaultImpl), newVaultInit)));
 
         // Admin switches fundToken to new vault
         vm.prank(admin);
         fundToken.setVault(address(newVault));
 
-        // Old vault still has 100 XAUT
-        assertEq(xaut.balanceOf(address(vault)), 100e6);
-        // New vault has 0 XAUT
-        assertEq(xaut.balanceOf(address(newVault)), 0);
+        // Old vault still has 100 ASSET
+        assertEq(asset.balanceOf(address(vault)), 100e6);
+        // New vault has 0 ASSET
+        assertEq(asset.balanceOf(address(newVault)), 0);
 
         // New deposits go to new vault
         vm.prank(user2);
         fundToken.mint(50e6);
-        assertEq(xaut.balanceOf(address(newVault)), 50e6);
+        assertEq(asset.balanceOf(address(newVault)), 50e6);
 
         // Old vault funds are stranded — need manual withdrawal by settlement operator
         // approveRedemption would pull from new vault (which may not have enough funds)
@@ -858,7 +858,7 @@ contract FundSecurityTest is FundTestBase {
     /// @dev SEC-FUND-4: ERC20 returns false without reverting (non-standard).
     /// SafeERC20.safeTransfer should revert on false return.
     function test_SEC_FUND_4_returnFalseERC20() public {
-        ReturnFalseERC20 badToken = new ReturnFalseERC20("BAD", "BAD", XAUT_DECIMALS);
+        ReturnFalseERC20 badToken = new ReturnFalseERC20("BAD", "BAD", ASSET_DECIMALS);
 
         CoboFundOracle secOracle = _deployFreshOracle();
         (CoboFundToken secNav,) = _deployFreshNav4626AndVault(address(badToken), address(secOracle));
@@ -883,10 +883,10 @@ contract FundSecurityTest is FundTestBase {
     }
 
     /// @dev SEC-FUND-5: Fee-on-transfer token.
-    /// XAUT has transfer fee → Nav4626 transfers less than xautAmount to Vault.
+    /// ASSET has transfer fee → Nav4626 transfers less than assetAmount to Vault.
     function test_SEC_FUND_5_feeOnTransferToken() public {
         // Deploy fee-on-transfer token (1% fee)
-        FeeOnTransferERC20 feeToken = new FeeOnTransferERC20("FEE", "FEE", XAUT_DECIMALS, 100);
+        FeeOnTransferERC20 feeToken = new FeeOnTransferERC20("FEE", "FEE", ASSET_DECIMALS, 100);
 
         CoboFundOracle secOracle = _deployFreshOracle();
         (CoboFundToken secNav,) = _deployFreshNav4626AndVault(address(feeToken), address(secOracle));
@@ -919,7 +919,7 @@ contract FundSecurityTest is FundTestBase {
     /// Mapping has no iteration, no gas overflow. Approver processes one by one.
     function test_SEC_DOS_1_massPendingRedemptions() public {
         // Deposit enough shares
-        _deposit(user1, 100e6); // 100 XAUE
+        _deposit(user1, 100e6); // 100 SHARE
 
         // Set minRedeemShares very low to allow many small requests
         vm.prank(admin);
@@ -927,7 +927,7 @@ contract FundSecurityTest is FundTestBase {
 
         // Create many small redemption requests
         uint256 numRequests = 50;
-        uint256 shareAmount = 1e18; // 1 XAUE each
+        uint256 shareAmount = 1e18; // 1 SHARE each
         uint256[] memory reqIds = new uint256[](numRequests);
 
         for (uint256 i = 0; i < numRequests; i++) {
@@ -943,11 +943,11 @@ contract FundSecurityTest is FundTestBase {
         }
 
         // Approve each one individually — no gas issues since mapping lookup is O(1)
-        xaut.mint(address(vault), 1000e6); // fund vault for payouts
+        asset.mint(address(vault), 1000e6); // fund vault for payouts
         for (uint256 i = 0; i < numRequests; i++) {
-            (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqIds[i]);
+            (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqIds[i]);
             vm.prank(redemptionApprover);
-            fundToken.approveRedemption(reqIds[i], user1, xautAmt, xaueAmt);
+            fundToken.approveRedemption(reqIds[i], user1, assetAmt, shareAmt);
         }
 
         // Verify all executed
@@ -963,7 +963,7 @@ contract FundSecurityTest is FundTestBase {
         // Deposit and create a redemption request
         _deposit(user1, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
         // Revoke all redemption approvers
         vm.prank(admin);
@@ -975,12 +975,12 @@ contract FundSecurityTest is FundTestBase {
         // Attempt to approve — reverts because no one has the role
         vm.prank(redemptionApprover);
         vm.expectRevert();
-        fundToken.approveRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
         // Attempt to reject — also reverts
         vm.prank(redemptionApprover);
         vm.expectRevert();
-        fundToken.rejectRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
         // Request is permanently stuck in Pending state
         (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
@@ -992,7 +992,7 @@ contract FundSecurityTest is FundTestBase {
 
         // Now the new approver can settle
         vm.prank(makeAddr("newApprover"));
-        fundToken.rejectRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
         (,,,,, CoboFundToken.RedemptionStatus statusAfter) = fundToken.redemptions(reqId);
         assertEq(uint256(statusAfter), uint256(CoboFundToken.RedemptionStatus.Rejected));
@@ -1090,7 +1090,7 @@ contract FundSecurityTest is FundTestBase {
         // Now withdraw works again
         vm.prank(settlementOperator);
         vault.withdraw(user1, 10e6);
-        assertEq(xaut.balanceOf(user1), 910e6); // 1000 - 100 (deposit) + 10 (withdraw)
+        assertEq(asset.balanceOf(user1), 910e6); // 1000 - 100 (deposit) + 10 (withdraw)
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1153,35 +1153,35 @@ contract FundSecurityTest is FundTestBase {
         uint256 navAfter = oracle.getLatestPrice();
         assertEq(navAfter, navBefore);
 
-        // The redemption locked xautAmount at the time of request.
+        // The redemption locked assetAmount at the time of request.
         // Even after APR changes, the locked amount doesn't change.
         // The "advantage" from front-running is minimal because NAV changes are continuous.
     }
 
     /// @dev SEC-FR-3: NAV change between request and approval has no effect.
-    /// requestRedemption locks xautAmount. Approval uses locked amount, not real-time NAV.
+    /// requestRedemption locks assetAmount. Approval uses locked amount, not real-time NAV.
     function test_SEC_FR_3_lockedXautAmountUnchanged() public {
         _deposit(user1, 100e6);
 
         // Request redemption at NAV=1e18
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
-        // xautAmount = 50e18 * 1e18 / (1e12 * 1e18) = 50e6
-        assertEq(xautAmt, 50e6);
+        // assetAmount = 50e18 * 1e18 / (1e12 * 1e18) = 50e6
+        assertEq(assetAmt, 50e6);
 
         // Time passes, NAV increases significantly
         vm.warp(block.timestamp + 365 days);
         uint256 navNow = oracle.getLatestPrice();
         assertGt(navNow, 1e18); // NAV grew due to 5% APR
 
-        // Approve the original request — uses locked xautAmount, not current NAV
+        // Approve the original request — uses locked assetAmount, not current NAV
         vm.prank(redemptionApprover);
-        fundToken.approveRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
-        // User receives exactly 50e6 XAUT (the locked amount), NOT the higher value
+        // User receives exactly 50e6 ASSET (the locked amount), NOT the higher value
         // at current NAV
-        assertEq(xaut.balanceOf(user1), 900e6 + 50e6); // initial 1000 - 100 deposit + 50 redeemed
+        assertEq(asset.balanceOf(user1), 900e6 + 50e6); // initial 1000 - 100 deposit + 50 redeemed
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1217,9 +1217,9 @@ contract FundSecurityTest is FundTestBase {
         bytes memory navInit = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "XAUE",
-                "XAUE",
-                XAUE_DECIMALS,
+                "SHARE",
+                "SHARE",
+                SHARE_DECIMALS,
                 token,
                 oracleAddr,
                 predictedVault,

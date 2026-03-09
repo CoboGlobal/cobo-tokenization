@@ -18,9 +18,9 @@ import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol"
 import {LibFundErrors} from "./libraries/LibFundErrors.sol";
 import {ICoboFundOracle} from "./CoboFundOracle.sol";
 
-/// @title CoboFundToken - Share management contract (ERC20) for XAUE gold fund.
+/// @title CoboFundToken - ERC20 share token for asset-backed funds with NAV-based pricing.
 /// @author Cobo Safe Dev Team https://www.cobo.com/
-/// @notice Handles deposit, async redemption, whitelist, freeze, pause, and compliance operations.
+/// @notice Handles deposit, async redemption, whitelist, pause, and compliance operations.
 /// @dev Decimal conversion uses precomputed scale factors for share and asset decimals.
 ///      NAV per share is in 1e18 precision, representing "1 share = nav/1e18 asset" in human terms.
 contract CoboFundToken is
@@ -64,16 +64,16 @@ contract CoboFundToken is
     struct RedemptionRequest {
         uint256 id;
         address user;
-        uint256 xautAmount; // XAUT to pay (asset token decimals)
-        uint256 xaueAmount; // shares burned (share token decimals)
+        uint256 assetAmount; // ASSET to pay (asset token decimals)
+        uint256 shareAmount; // shares burned (share token decimals)
         uint256 requestedAt;
         RedemptionStatus status;
     }
 
     // ─── State Variables ────────────────────────────────────────────────
 
-    /// @notice The asset token (XAUT).
-    IERC20 public xaut;
+    /// @notice The asset token (ASSET).
+    IERC20 public asset;
 
     /// @notice The NAV oracle contract.
     ICoboFundOracle public oracle;
@@ -87,7 +87,7 @@ contract CoboFundToken is
     /// @notice Minimum redeem amount in share token decimals.
     uint256 public minRedeemShares;
 
-    /// @notice Asset token decimals (cached from XAUT).
+    /// @notice Asset token decimals (cached from ASSET).
     uint8 public assetDecimals;
 
     /// @notice Share token decimals.
@@ -111,24 +111,24 @@ contract CoboFundToken is
     event RedemptionRequested(
         uint256 indexed reqId,
         address indexed user,
-        uint256 xautAmount,
-        uint256 xaueAmount,
+        uint256 assetAmount,
+        uint256 shareAmount,
         uint256 timestamp,
         address requestedBy
     );
     event RedemptionExecuted(
         uint256 indexed reqId,
         address indexed user,
-        uint256 xautAmount,
-        uint256 xaueAmount,
+        uint256 assetAmount,
+        uint256 shareAmount,
         uint256 timestamp,
         address executedBy
     );
     event RedemptionRejected(
         uint256 indexed reqId,
         address indexed user,
-        uint256 xautAmount,
-        uint256 xaueAmount,
+        uint256 assetAmount,
+        uint256 shareAmount,
         uint256 timestamp,
         address rejectedBy
     );
@@ -152,10 +152,10 @@ contract CoboFundToken is
     // ─── Initializer ────────────────────────────────────────────────────
 
     /// @notice Initialize the share management contract.
-    /// @param name_ Token name (e.g., "XAUE Gold Fund").
-    /// @param symbol_ Token symbol (e.g., "XAUE").
+    /// @param name_ Token name (e.g., "SHARE Gold Fund").
+    /// @param symbol_ Token symbol (e.g., "SHARE").
     /// @param decimals_ Token decimals (e.g., 18).
-    /// @param xaut_ Address of the asset token (XAUT).
+    /// @param asset_ Address of the asset token (ASSET).
     /// @param oracle_ Address of the NAV oracle.
     /// @param vault_ Address of the asset custody vault.
     /// @param admin Address to receive DEFAULT_ADMIN_ROLE.
@@ -165,14 +165,14 @@ contract CoboFundToken is
         string calldata name_,
         string calldata symbol_,
         uint8 decimals_,
-        address xaut_,
+        address asset_,
         address oracle_,
         address vault_,
         address admin,
         uint256 minDepositAmount_,
         uint256 minRedeemShares_
     ) external initializer {
-        if (xaut_ == address(0)) revert LibFundErrors.ZeroAddress();
+        if (asset_ == address(0)) revert LibFundErrors.ZeroAddress();
         if (oracle_ == address(0)) revert LibFundErrors.ZeroAddress();
         if (vault_ == address(0)) revert LibFundErrors.ZeroAddress();
         if (admin == address(0)) revert LibFundErrors.ZeroAddress();
@@ -187,14 +187,14 @@ contract CoboFundToken is
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         _decimals = decimals_;
-        xaut = IERC20(xaut_);
+        asset = IERC20(asset_);
         oracle = ICoboFundOracle(oracle_);
         vault = vault_;
         minDepositAmount = minDepositAmount_;
         minRedeemShares = minRedeemShares_;
 
         // Compute scale factors for decimal conversion
-        assetDecimals = IERC20Metadata(xaut_).decimals();
+        assetDecimals = IERC20Metadata(asset_).decimals();
         _assetScale = 10 ** uint256(assetDecimals);
         _shareScale = 10 ** uint256(decimals_);
     }
@@ -253,43 +253,43 @@ contract CoboFundToken is
     // ─── Deposit ────────────────────────────────────────────────────────
 
     /// @notice Deposit asset tokens and receive shares.
-    /// @param xautAmount Amount of asset to deposit (asset token decimals).
-    /// @return xaueAmount Amount of shares minted (share token decimals).
-    function mint(uint256 xautAmount) external whenNotPaused nonReentrant returns (uint256 xaueAmount) {
+    /// @param assetAmount Amount of asset to deposit (asset token decimals).
+    /// @return shareAmount Amount of shares minted (share token decimals).
+    function mint(uint256 assetAmount) external whenNotPaused nonReentrant returns (uint256 shareAmount) {
         if (!whitelist[msg.sender]) revert LibFundErrors.NotWhitelisted(msg.sender);
-        if (xautAmount < minDepositAmount) revert LibFundErrors.BelowMinDeposit(xautAmount, minDepositAmount);
+        if (assetAmount < minDepositAmount) revert LibFundErrors.BelowMinDeposit(assetAmount, minDepositAmount);
 
         uint256 nav = oracle.getLatestPrice();
         if (nav == 0) revert LibFundErrors.ZeroNetValue();
 
-        xaueAmount = _assetToShares(xautAmount, nav);
-        if (xaueAmount == 0) revert LibFundErrors.ZeroShares();
+        shareAmount = _assetToShares(assetAmount, nav);
+        if (shareAmount == 0) revert LibFundErrors.ZeroShares();
 
         // Transfer asset from user to Vault
-        xaut.safeTransferFrom(msg.sender, vault, xautAmount);
+        asset.safeTransferFrom(msg.sender, vault, assetAmount);
 
-        // Mint shares to user (goes through _update with whitelist/freeze/pause checks)
-        _mint(msg.sender, xaueAmount);
+        // Mint shares to user (goes through _update with whitelist/pause checks)
+        _mint(msg.sender, shareAmount);
     }
 
     // ─── Redemption Request ─────────────────────────────────────────────
 
     /// @notice Request redemption by burning shares.
-    /// @param xaueAmount Amount of shares to redeem (share token decimals).
+    /// @param shareAmount Amount of shares to redeem (share token decimals).
     /// @return reqId Redemption request ID.
-    function requestRedemption(uint256 xaueAmount) external whenNotPaused returns (uint256 reqId) {
+    function requestRedemption(uint256 shareAmount) external whenNotPaused returns (uint256 reqId) {
         if (!whitelist[msg.sender]) revert LibFundErrors.NotWhitelisted(msg.sender);
-        if (xaueAmount < minRedeemShares) revert LibFundErrors.BelowMinRedeem(xaueAmount, minRedeemShares);
+        if (shareAmount < minRedeemShares) revert LibFundErrors.BelowMinRedeem(shareAmount, minRedeemShares);
 
         uint256 nav = oracle.getLatestPrice();
         if (nav == 0) revert LibFundErrors.ZeroNetValue();
 
         // Convert shares to asset amount
-        uint256 xautAmount = _sharesToAsset(xaueAmount, nav);
-        if (xautAmount == 0) revert LibFundErrors.ZeroAssetAmount();
+        uint256 assetAmount = _sharesToAsset(shareAmount, nav);
+        if (assetAmount == 0) revert LibFundErrors.ZeroAssetAmount();
 
         // Burn shares immediately (goes through _update)
-        _burn(msg.sender, xaueAmount);
+        _burn(msg.sender, shareAmount);
 
         // Create request
         reqId = redemptions.length;
@@ -297,25 +297,25 @@ contract CoboFundToken is
             RedemptionRequest({
                 id: reqId,
                 user: msg.sender,
-                xautAmount: xautAmount,
-                xaueAmount: xaueAmount,
+                assetAmount: assetAmount,
+                shareAmount: shareAmount,
                 requestedAt: block.timestamp,
                 status: RedemptionStatus.Pending
             })
         );
 
-        emit RedemptionRequested(reqId, msg.sender, xautAmount, xaueAmount, block.timestamp, msg.sender);
+        emit RedemptionRequested(reqId, msg.sender, assetAmount, shareAmount, block.timestamp, msg.sender);
     }
 
     // ─── Redemption Approval ────────────────────────────────────────────
 
     /// @notice Approve a pending redemption. Pays asset from Vault to user.
-    /// @dev user/xautAmount/xaueAmount params are for Cobo Guard calldata signing verification.
+    /// @dev user/assetAmount/shareAmount params are for Cobo Guard calldata signing verification.
     /// @param reqId Redemption request ID.
     /// @param user Expected user address (verified against stored request).
-    /// @param xautAmount Expected XAUT amount (verified against stored request).
-    /// @param xaueAmount Expected XAUE amount (verified against stored request).
-    function approveRedemption(uint256 reqId, address user, uint256 xautAmount, uint256 xaueAmount)
+    /// @param assetAmount Expected ASSET amount (verified against stored request).
+    /// @param shareAmount Expected SHARE amount (verified against stored request).
+    function approveRedemption(uint256 reqId, address user, uint256 assetAmount, uint256 shareAmount)
         external
         onlyRole(REDEMPTION_APPROVER_ROLE)
         whenNotPaused
@@ -325,7 +325,7 @@ contract CoboFundToken is
         RedemptionRequest storage req = redemptions[reqId];
 
         if (req.status != RedemptionStatus.Pending) revert LibFundErrors.RedemptionNotPending(reqId);
-        if (req.user != user || req.xautAmount != xautAmount || req.xaueAmount != xaueAmount) {
+        if (req.user != user || req.assetAmount != assetAmount || req.shareAmount != shareAmount) {
             revert LibFundErrors.RedemptionParamMismatch(reqId);
         }
         if (!whitelist[user]) revert LibFundErrors.NotWhitelisted(user);
@@ -334,9 +334,9 @@ contract CoboFundToken is
         req.status = RedemptionStatus.Executed;
 
         // Pay asset from Vault to user (Vault has pre-approved this contract)
-        xaut.safeTransferFrom(vault, user, xautAmount);
+        asset.safeTransferFrom(vault, user, assetAmount);
 
-        emit RedemptionExecuted(reqId, user, xautAmount, xaueAmount, block.timestamp, msg.sender);
+        emit RedemptionExecuted(reqId, user, assetAmount, shareAmount, block.timestamp, msg.sender);
     }
 
     // ─── Redemption Rejection ───────────────────────────────────────────
@@ -347,9 +347,9 @@ contract CoboFundToken is
     ///      Implicitly pause-guarded: _mintBypass enforces whenNotPaused.
     /// @param reqId Redemption request ID.
     /// @param user Expected user address (verified against stored request).
-    /// @param xautAmount Expected XAUT amount (verified against stored request).
-    /// @param xaueAmount Expected XAUE amount (verified against stored request).
-    function rejectRedemption(uint256 reqId, address user, uint256 xautAmount, uint256 xaueAmount)
+    /// @param assetAmount Expected ASSET amount (verified against stored request).
+    /// @param shareAmount Expected SHARE amount (verified against stored request).
+    function rejectRedemption(uint256 reqId, address user, uint256 assetAmount, uint256 shareAmount)
         external
         onlyRole(REDEMPTION_APPROVER_ROLE)
         nonReentrant
@@ -358,16 +358,16 @@ contract CoboFundToken is
         RedemptionRequest storage req = redemptions[reqId];
 
         if (req.status != RedemptionStatus.Pending) revert LibFundErrors.RedemptionNotPending(reqId);
-        if (req.user != user || req.xautAmount != xautAmount || req.xaueAmount != xaueAmount) {
+        if (req.user != user || req.assetAmount != assetAmount || req.shareAmount != shareAmount) {
             revert LibFundErrors.RedemptionParamMismatch(reqId);
         }
 
         req.status = RedemptionStatus.Rejected;
 
         // Mint back shares (bypass whitelist — user may have been removed)
-        _mintBypass(user, xaueAmount);
+        _mintBypass(user, shareAmount);
 
-        emit RedemptionRejected(reqId, user, xautAmount, xaueAmount, block.timestamp, msg.sender);
+        emit RedemptionRejected(reqId, user, assetAmount, shareAmount, block.timestamp, msg.sender);
     }
 
     // ─── Compliance: Force Redeem ───────────────────────────────────────
@@ -480,7 +480,7 @@ contract CoboFundToken is
     // ─── Asset Rescue ───────────────────────────────────────────────────
 
     /// @notice Rescue accidentally sent ERC20 tokens.
-    /// @dev This contract should not hold any XAUT or XAUE under normal operations.
+    /// @dev This contract should not hold any ASSET or SHARE under normal operations.
     function rescueERC20(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert LibFundErrors.ZeroAddress();
         IERC20(token).safeTransfer(to, amount);

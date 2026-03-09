@@ -20,11 +20,11 @@ interface ICoboFundToken {
     function paused() external view returns (bool);
 }
 
-/// @title CoboFundVault - Asset custody vault for XAUT.
+/// @title CoboFundVault - Asset custody vault for ASSET.
 /// @author Cobo Safe Dev Team https://www.cobo.com/
-/// @notice Holds all XAUT deposits and supports controlled withdrawals to whitelisted addresses.
+/// @notice Holds all ASSET deposits and supports controlled withdrawals to whitelisted addresses.
 /// @dev Reads FundToken's pause state for coordinated pause — does NOT inherit PausableUpgradeable.
-///      Pre-approves FundToken for max XAUT so FundToken can transferFrom for redemption payouts.
+///      Pre-approves FundToken for max ASSET so FundToken can transferFrom for redemption payouts.
 contract CoboFundVault is
     Initializable,
     AccessControlEnumerableUpgradeable,
@@ -47,8 +47,8 @@ contract CoboFundVault is
 
     // ─── State Variables ────────────────────────────────────────────────
 
-    /// @notice The asset token (XAUT).
-    IERC20 public xaut;
+    /// @notice The asset token (ASSET).
+    IERC20 public asset;
 
     /// @notice The FundToken contract (read paused state for coordinated pause).
     ICoboFundToken public fundToken;
@@ -75,11 +75,11 @@ contract CoboFundVault is
     /// @notice Initialize the vault with asset token, FundToken reference, and admin.
     /// @dev Automatically approves FundToken with max uint256 for asset token,
     ///      so FundToken can transferFrom to pay redemptions.
-    /// @param xaut_ Address of the asset token (XAUT).
+    /// @param asset_ Address of the asset token (ASSET).
     /// @param fundToken_ Address of the FundToken contract.
     /// @param admin Address to receive DEFAULT_ADMIN_ROLE.
-    function initialize(address xaut_, address fundToken_, address admin) external initializer {
-        if (xaut_ == address(0)) revert LibFundErrors.ZeroAddress();
+    function initialize(address asset_, address fundToken_, address admin) external initializer {
+        if (asset_ == address(0)) revert LibFundErrors.ZeroAddress();
         if (fundToken_ == address(0)) revert LibFundErrors.ZeroAddress();
         if (admin == address(0)) revert LibFundErrors.ZeroAddress();
 
@@ -90,11 +90,11 @@ contract CoboFundVault is
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        xaut = IERC20(xaut_);
+        asset = IERC20(asset_);
         fundToken = ICoboFundToken(fundToken_);
 
         // Pre-approve FundToken to pull asset for redemption payments
-        IERC20(xaut_).forceApprove(fundToken_, type(uint256).max);
+        IERC20(asset_).forceApprove(fundToken_, type(uint256).max);
     }
 
     // ─── Asset Transfer (SETTLEMENT_OPERATOR_ROLE only) ─────────────────
@@ -108,7 +108,7 @@ contract CoboFundVault is
         if (!whitelist[to]) revert LibFundErrors.NotInVaultWhitelist(to);
         if (fundToken.paused()) revert LibFundErrors.SystemPaused();
 
-        xaut.safeTransfer(to, amount);
+        asset.safeTransfer(to, amount);
         emit Withdrawn(to, amount, msg.sender);
     }
 
@@ -129,12 +129,12 @@ contract CoboFundVault is
         if (fundToken_ == address(0)) revert LibFundErrors.ZeroAddress();
 
         // Revoke old approval
-        xaut.forceApprove(address(fundToken), 0);
+        asset.forceApprove(address(fundToken), 0);
 
         fundToken = ICoboFundToken(fundToken_);
 
         // Approve new FundToken
-        xaut.forceApprove(fundToken_, type(uint256).max);
+        asset.forceApprove(fundToken_, type(uint256).max);
 
         emit FundTokenUpdated(fundToken_);
     }
@@ -162,10 +162,10 @@ contract CoboFundVault is
 
     // ─── Asset Rescue ───────────────────────────────────────────────────
 
-    /// @notice Rescue accidentally sent ERC20 tokens (cannot rescue XAUT).
+    /// @notice Rescue accidentally sent ERC20 tokens (cannot rescue ASSET).
     function rescueERC20(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert LibFundErrors.ZeroAddress();
-        if (token == address(xaut)) revert LibFundErrors.CannotRescueCoreAsset(token);
+        if (token == address(asset)) revert LibFundErrors.CannotRescueCoreAsset(token);
         IERC20(token).safeTransfer(to, amount);
         emit RescueToken(token, to, amount);
     }

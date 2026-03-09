@@ -17,7 +17,7 @@ contract FundTokenHarness is CoboFundToken {
     }
 }
 
-/// @title FundFuzzTest - Fuzz and invariant tests for the XAUE gold fund tokenization system.
+/// @title FundFuzzTest - Fuzz and invariant tests for the SHARE gold fund tokenization system.
 /// @dev Covers FZ-1..FZ-7 (fuzz tests) and INV-1..INV-9 (scenario-based invariant tests).
 contract FundFuzzTest is FundTestBase {
     // ─── Harness ─────────────────────────────────────────────────────────
@@ -33,10 +33,10 @@ contract FundFuzzTest is FundTestBase {
         bytes memory harnessInit = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "XAUE Harness",
-                "XAUE-H",
-                XAUE_DECIMALS,
-                address(xaut),
+                "SHARE Harness",
+                "SHARE-H",
+                SHARE_DECIMALS,
+                address(asset),
                 address(oracle),
                 address(vault),
                 admin,
@@ -107,26 +107,26 @@ contract FundFuzzTest is FundTestBase {
         assertGe(price, baseNV, "FZ-3: getLatestPrice below baseNetValue");
     }
 
-    // ─── FZ-4: mint produces valid shares and transfers XAUT ─────────────
+    // ─── FZ-4: mint produces valid shares and transfers ASSET ─────────────
 
-    /// @dev For any valid xautAmount within range, shares > 0, XAUT transferred, totalSupply increases.
-    function testFuzz_FZ_4_mintAmount(uint256 xautAmount) public {
-        uint256 userBalance = xaut.balanceOf(user1);
-        xautAmount = bound(xautAmount, MIN_DEPOSIT_AMOUNT, userBalance);
+    /// @dev For any valid assetAmount within range, shares > 0, ASSET transferred, totalSupply increases.
+    function testFuzz_FZ_4_mintAmount(uint256 assetAmount) public {
+        uint256 userBalance = asset.balanceOf(user1);
+        assetAmount = bound(assetAmount, MIN_DEPOSIT_AMOUNT, userBalance);
 
         uint256 totalSupplyBefore = fundToken.totalSupply();
-        uint256 vaultBalBefore = xaut.balanceOf(address(vault));
-        uint256 userXautBefore = xaut.balanceOf(user1);
+        uint256 vaultBalBefore = asset.balanceOf(address(vault));
+        uint256 userXautBefore = asset.balanceOf(user1);
 
         vm.prank(user1);
-        uint256 shares = fundToken.mint(xautAmount);
+        uint256 shares = fundToken.mint(assetAmount);
 
         // Shares must be positive
         assertGt(shares, 0, "FZ-4: zero shares minted");
 
-        // XAUT correctly transferred from user to vault
-        assertEq(xaut.balanceOf(user1), userXautBefore - xautAmount, "FZ-4: user XAUT balance wrong");
-        assertEq(xaut.balanceOf(address(vault)), vaultBalBefore + xautAmount, "FZ-4: vault XAUT balance wrong");
+        // ASSET correctly transferred from user to vault
+        assertEq(asset.balanceOf(user1), userXautBefore - assetAmount, "FZ-4: user ASSET balance wrong");
+        assertEq(asset.balanceOf(address(vault)), vaultBalBefore + assetAmount, "FZ-4: vault ASSET balance wrong");
 
         // totalSupply increased by shares
         assertEq(fundToken.totalSupply(), totalSupplyBefore + shares, "FZ-4: totalSupply mismatch");
@@ -137,26 +137,26 @@ contract FundFuzzTest is FundTestBase {
 
     // ─── FZ-5: requestRedemption burns correct shares ────────────────────
 
-    /// @dev For any xaueAmount within balance, xautAmount > 0, shares correctly burned.
-    function testFuzz_FZ_5_requestRedemptionAmount(uint256 xaueAmount) public {
+    /// @dev For any shareAmount within balance, assetAmount > 0, shares correctly burned.
+    function testFuzz_FZ_5_requestRedemptionAmount(uint256 shareAmount) public {
         // First deposit to have shares
         uint256 shares = _deposit(user1, 100e6);
 
-        xaueAmount = bound(xaueAmount, MIN_REDEEM_SHARES, shares);
+        shareAmount = bound(shareAmount, MIN_REDEEM_SHARES, shares);
 
         uint256 totalSupplyBefore = fundToken.totalSupply();
         uint256 userSharesBefore = fundToken.balanceOf(user1);
 
         vm.prank(user1);
-        uint256 reqId = fundToken.requestRedemption(xaueAmount);
+        uint256 reqId = fundToken.requestRedemption(shareAmount);
 
         // Shares were burned
-        assertEq(fundToken.balanceOf(user1), userSharesBefore - xaueAmount, "FZ-5: user shares not burned correctly");
-        assertEq(fundToken.totalSupply(), totalSupplyBefore - xaueAmount, "FZ-5: totalSupply not reduced correctly");
+        assertEq(fundToken.balanceOf(user1), userSharesBefore - shareAmount, "FZ-5: user shares not burned correctly");
+        assertEq(fundToken.totalSupply(), totalSupplyBefore - shareAmount, "FZ-5: totalSupply not reduced correctly");
 
-        // xautAmount in the request must be > 0
-        (,, uint256 xautAmt,,,) = fundToken.redemptions(reqId);
-        assertGt(xautAmt, 0, "FZ-5: zero xautAmount in redemption request");
+        // assetAmount in the request must be > 0
+        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        assertGt(assetAmt, 0, "FZ-5: zero assetAmount in redemption request");
     }
 
     // ─── FZ-6: withdraw from vault ──────────────────────────────────────
@@ -165,20 +165,20 @@ contract FundFuzzTest is FundTestBase {
     function testFuzz_FZ_6_withdrawAmount(uint256 amount) public {
         // First deposit to fund the vault
         _deposit(user1, 500e6);
-        uint256 vaultBalance = xaut.balanceOf(address(vault));
+        uint256 vaultBalance = asset.balanceOf(address(vault));
 
         // Bound to valid range (> 0 and <= vault balance)
         amount = bound(amount, 1, vaultBalance);
 
-        uint256 user1XautBefore = xaut.balanceOf(user1);
+        uint256 user1XautBefore = asset.balanceOf(user1);
 
         vm.prank(settlementOperator);
         vault.withdraw(user1, amount);
 
         // Vault balance decreased
-        assertEq(xaut.balanceOf(address(vault)), vaultBalance - amount, "FZ-6: vault balance not decreased correctly");
+        assertEq(asset.balanceOf(address(vault)), vaultBalance - amount, "FZ-6: vault balance not decreased correctly");
         // User received the amount
-        assertEq(xaut.balanceOf(user1), user1XautBefore + amount, "FZ-6: user balance not increased correctly");
+        assertEq(asset.balanceOf(user1), user1XautBefore + amount, "FZ-6: user balance not increased correctly");
     }
 
     // ─── FZ-7: updateRate APR value within valid range ──────────────────
@@ -286,8 +286,8 @@ contract FundFuzzTest is FundTestBase {
         (,, uint256 xautAmt2, uint256 xaueAmt2,,) = fundToken.redemptions(reqId2);
 
         // Approve reqId1
-        // Fund vault with enough XAUT for payout
-        xaut.mint(address(vault), xautAmt1);
+        // Fund vault with enough ASSET for payout
+        asset.mint(address(vault), xautAmt1);
         vm.prank(redemptionApprover);
         fundToken.approveRedemption(reqId1, user1, xautAmt1, xaueAmt1);
 
@@ -343,39 +343,39 @@ contract FundFuzzTest is FundTestBase {
         }
     }
 
-    // ─── INV-5: Vault XAUT accounting consistency ───────────────────────
+    // ─── INV-5: Vault ASSET accounting consistency ───────────────────────
 
-    /// @dev Vault.XAUT change = mint deposits - approve payouts - withdrawals
+    /// @dev Vault.ASSET change = mint deposits - approve payouts - withdrawals
     function test_INV_5_vaultAccountingAccuracy() public {
-        uint256 vaultBalStart = xaut.balanceOf(address(vault));
+        uint256 vaultBalStart = asset.balanceOf(address(vault));
         assertEq(vaultBalStart, 0, "INV-5: vault should start empty");
 
-        // 1. Deposit 100 XAUT → vault gains 100 XAUT
+        // 1. Deposit 100 ASSET → vault gains 100 ASSET
         _deposit(user1, 100e6);
-        assertEq(xaut.balanceOf(address(vault)), 100e6, "INV-5: after deposit");
+        assertEq(asset.balanceOf(address(vault)), 100e6, "INV-5: after deposit");
 
-        // 2. Deposit 200 XAUT → vault gains 200 more
+        // 2. Deposit 200 ASSET → vault gains 200 more
         _deposit(user2, 200e6);
-        assertEq(xaut.balanceOf(address(vault)), 300e6, "INV-5: after second deposit");
+        assertEq(asset.balanceOf(address(vault)), 300e6, "INV-5: after second deposit");
 
-        // 3. Request redemption (burns shares, does NOT move XAUT yet)
+        // 3. Request redemption (burns shares, does NOT move ASSET yet)
         uint256 reqId = _requestRedemption(user1, 50e18);
-        assertEq(xaut.balanceOf(address(vault)), 300e6, "INV-5: after request (no XAUT change)");
+        assertEq(asset.balanceOf(address(vault)), 300e6, "INV-5: after request (no ASSET change)");
 
-        // 4. Approve redemption → vault pays xautAmount to user
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        // 4. Approve redemption → vault pays assetAmount to user
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
         vm.prank(redemptionApprover);
-        fundToken.approveRedemption(reqId, user1, xautAmt, xaueAmt);
-        assertEq(xaut.balanceOf(address(vault)), 300e6 - xautAmt, "INV-5: after approve");
+        fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
+        assertEq(asset.balanceOf(address(vault)), 300e6 - assetAmt, "INV-5: after approve");
 
-        // 5. Withdraw 10 XAUT from vault
+        // 5. Withdraw 10 ASSET from vault
         vm.prank(settlementOperator);
         vault.withdraw(user1, 10e6);
-        assertEq(xaut.balanceOf(address(vault)), 300e6 - xautAmt - 10e6, "INV-5: after withdraw");
+        assertEq(asset.balanceOf(address(vault)), 300e6 - assetAmt - 10e6, "INV-5: after withdraw");
 
         // Final: vault balance = total deposits - approve payouts - withdrawals
-        uint256 expectedVaultBal = 300e6 - xautAmt - 10e6;
-        assertEq(xaut.balanceOf(address(vault)), expectedVaultBal, "INV-5: final accounting mismatch");
+        uint256 expectedVaultBal = 300e6 - assetAmt - 10e6;
+        assertEq(asset.balanceOf(address(vault)), expectedVaultBal, "INV-5: final accounting mismatch");
     }
 
     // ─── INV-6: forceRedeem works in any state (only owner constraint) ──
@@ -445,14 +445,14 @@ contract FundFuzzTest is FundTestBase {
         // Deposit and request redemption
         _deposit(user1, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
         // rejectRedemption should still work (mintBypass ignores whitelist/freeze)
         vm.prank(redemptionApprover);
-        fundToken.rejectRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
         assertEq(fundToken.balanceOf(user1), 100e18, "INV-8: _mintBypass should bypass whitelist/freeze");
 
         // Now test pause: create a new redemption request
@@ -483,7 +483,7 @@ contract FundFuzzTest is FundTestBase {
         _deposit(user1, 100e6);
         _deposit(user2, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt, uint256 xaueAmt,,) = fundToken.redemptions(reqId);
+        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
 
         // Pause the system
         vm.prank(admin);
@@ -518,12 +518,12 @@ contract FundFuzzTest is FundTestBase {
         // 5. approveRedemption should revert (whenNotPaused)
         vm.prank(redemptionApprover);
         vm.expectRevert();
-        fundToken.approveRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
         // 6. rejectRedemption should revert (_mintBypass has whenNotPaused)
         vm.prank(redemptionApprover);
         vm.expectRevert();
-        fundToken.rejectRedemption(reqId, user1, xautAmt, xaueAmt);
+        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
         // 7. Vault withdraw should revert (checks fundToken.paused())
         vm.prank(settlementOperator);
