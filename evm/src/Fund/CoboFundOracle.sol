@@ -2,14 +2,13 @@
 pragma solidity ^0.8.20;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {LibFundErrors} from "./libraries/LibFundErrors.sol";
 
@@ -73,7 +72,12 @@ contract CoboFundOracle is
     // ─── Events ─────────────────────────────────────────────────────────
 
     event NavUpdated(
-        uint256 indexed updateId, uint256 newBase, uint256 newAPR, uint256 timestamp, string metadata, address updater
+        uint256 indexed updateId,
+        uint256 newBase,
+        uint256 newAPR,
+        uint256 timestamp,
+        string metadata,
+        address updater
     );
     event WhitelistUpdated(address indexed account, bool allowed);
     event MaxAPRUpdated(uint256 maxAPR);
@@ -128,10 +132,10 @@ contract CoboFundOracle is
     /// @inheritdoc ICoboFundOracle
     function getLatestPrice() public view override returns (uint256) {
         uint256 elapsed = block.timestamp - lastUpdateTimestamp;
-        // Optimized calculation to reduce overflow risk:
-        // growth = (baseNetValue * currentAPR / _PRECISION) * elapsed / _SECONDS_PER_YEAR
-        uint256 annualGrowth = (baseNetValue * currentAPR) / _PRECISION;
-        return baseNetValue + (annualGrowth * elapsed) / _SECONDS_PER_YEAR;
+        // Multiply before divide to preserve precision; use mulDiv to prevent intermediate overflow.
+        // growth = baseNetValue * currentAPR * elapsed / (_PRECISION * _SECONDS_PER_YEAR)
+        uint256 growth = Math.mulDiv(baseNetValue * currentAPR, elapsed, _PRECISION * _SECONDS_PER_YEAR);
+        return baseNetValue + growth;
     }
 
     // ─── NAV Update (NAV_UPDATER_ROLE only) ─────────────────────────────
@@ -167,6 +171,7 @@ contract CoboFundOracle is
 
     /// @notice Set maximum allowed APR.
     function setMaxAPR(uint256 _maxAPR) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_maxAPR < currentAPR) revert LibFundErrors.APRExceedsMax(currentAPR, _maxAPR);
         maxAPR = _maxAPR;
         emit MaxAPRUpdated(_maxAPR);
     }
@@ -177,9 +182,8 @@ contract CoboFundOracle is
         emit MaxAprDeltaUpdated(_maxAprDelta);
     }
 
-    /// @notice Set minimum interval between rate updates. Capped at 90 days.
+    /// @notice Set minimum interval between rate updates.
     function setMinUpdateInterval(uint256 _minUpdateInterval) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_minUpdateInterval > 90 days) revert LibFundErrors.IntervalTooLarge(_minUpdateInterval, 90 days);
         minUpdateInterval = _minUpdateInterval;
         emit MinUpdateIntervalUpdated(_minUpdateInterval);
     }
@@ -209,8 +213,9 @@ contract CoboFundOracle is
     /// @dev Prevents revoking the last DEFAULT_ADMIN_ROLE holder.
     function revokeRole(bytes32 role, address account) public override(AccessControlUpgradeable, IAccessControl) {
         if (
-            role == DEFAULT_ADMIN_ROLE && hasRole(DEFAULT_ADMIN_ROLE, account)
-                && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
+            role == DEFAULT_ADMIN_ROLE &&
+            hasRole(DEFAULT_ADMIN_ROLE, account) &&
+            getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
         ) {
             revert LibFundErrors.LastAdminCannotBeRevoked();
         }

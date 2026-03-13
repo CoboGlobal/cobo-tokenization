@@ -24,7 +24,7 @@ contract FundIntegrationTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 0);
 
         // 4. Check stored assetAmount (should be based on 1.05 NAV)
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
         // assetAmount = 100e18 * 1.05e18 / (1e12 * 1e18) = 105e6
         assertEq(assetAmt, 105e6);
         assertEq(shareAmt, 100e18);
@@ -50,7 +50,7 @@ contract FundIntegrationTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, 50e18);
         assertEq(fundToken.balanceOf(user1), 50e18); // 50 burned
 
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Reject
         vm.prank(redemptionApprover);
@@ -80,8 +80,8 @@ contract FundIntegrationTest is FundTestBase {
         assertEq(fundToken.totalSupply(), 50e18); // user1 has 50 left
 
         // Approve both
-        (,, uint256 x1, uint256 s1,,) = fundToken.redemptions(req1);
-        (,, uint256 x2, uint256 s2,,) = fundToken.redemptions(req2);
+        (, , uint256 x1, uint256 s1, , ) = fundToken.redemptions(req1);
+        (, , uint256 x2, uint256 s2, , ) = fundToken.redemptions(req2);
 
         vm.startPrank(redemptionApprover);
         fundToken.approveRedemption(req1, user1, x1, s1);
@@ -171,7 +171,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User1 redeems 100 SHARE → should get 105 ASSET
         uint256 reqId = _requestRedemption(user1, 100e18);
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         assertEq(assetAmt, 105e6); // shares appreciated
     }
 
@@ -186,7 +186,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // At NAV=1.0: 1 SHARE (1e18) → 1 ASSET (1e6)
         uint256 reqId = _requestRedemption(user1, 1e18);
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         assertEq(assetAmt, 1e6);
     }
 
@@ -204,7 +204,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Redeem and approve should work without additional approval
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
@@ -266,7 +266,7 @@ contract FundIntegrationTest is FundTestBase {
         // 2. Redeem 50 SHARE (partial)
         uint256 reqId1 = _requestRedemption(user1, 50e18);
         assertEq(fundToken.balanceOf(user1), 50e18);
-        (,, uint256 x1, uint256 s1,,) = fundToken.redemptions(reqId1);
+        (, , uint256 x1, uint256 s1, , ) = fundToken.redemptions(reqId1);
         assertEq(x1, 50e6);
         assertEq(s1, 50e18);
 
@@ -278,7 +278,7 @@ contract FundIntegrationTest is FundTestBase {
         // 4. Redeem remaining 50 SHARE
         uint256 reqId2 = _requestRedemption(user1, 50e18);
         assertEq(fundToken.balanceOf(user1), 0);
-        (,, uint256 x2, uint256 s2,,) = fundToken.redemptions(reqId2);
+        (, , uint256 x2, uint256 s2, , ) = fundToken.redemptions(reqId2);
         assertEq(x2, 50e6);
         assertEq(s2, 50e18);
 
@@ -339,16 +339,16 @@ contract FundIntegrationTest is FundTestBase {
 
         // Redeem all shares
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Approve
         vm.prank(redemptionApprover);
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
         // User should get back ~100 ASSET (rounding favors protocol, so <= 1 wei loss is acceptable)
-        uint256 userXaut = asset.balanceOf(user1);
-        assertApproxEqAbs(userXaut, 1000e6, 1, "User ASSET should approximately match original balance");
-        assertLe(userXaut, 1000e6, "Rounding should favor protocol (user gets <= deposited)");
+        uint256 userAsset = asset.balanceOf(user1);
+        assertApproxEqAbs(userAsset, 1000e6, 1, "User ASSET should approximately match original balance");
+        assertLe(userAsset, 1000e6, "Rounding should favor protocol (user gets <= deposited)");
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -386,7 +386,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Redeem all shares
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // User should get back MORE than 100 ASSET (because NAV rose between deposit and redeem)
         assertGt(assetAmt, 100e6, "Redeemed amount should exceed deposit due to NAV growth");
@@ -425,7 +425,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Redeem
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
         assertEq(assetAmt, 100e6, "Should redeem back 100 ASSET");
 
         // Approve
@@ -452,9 +452,9 @@ contract FundIntegrationTest is FundTestBase {
         uint256 req2 = _requestRedemption(user2, 100e18);
         uint256 req3 = _requestRedemption(user3, 100e18);
 
-        (,, uint256 x1, uint256 s1,,) = fundToken.redemptions(req1);
-        (,, uint256 x2, uint256 s2,,) = fundToken.redemptions(req2);
-        (,, uint256 x3, uint256 s3,,) = fundToken.redemptions(req3);
+        (, , uint256 x1, uint256 s1, , ) = fundToken.redemptions(req1);
+        (, , uint256 x2, uint256 s2, , ) = fundToken.redemptions(req2);
+        (, , uint256 x3, uint256 s3, , ) = fundToken.redemptions(req3);
 
         vm.startPrank(redemptionApprover);
 
@@ -499,7 +499,7 @@ contract FundIntegrationTest is FundTestBase {
         uint256 req1 = _requestRedemption(user1, 100e18);
         _requestRedemption(user2, 100e18);
 
-        (,, uint256 x1, uint256 s1,,) = fundToken.redemptions(req1);
+        (, , uint256 x1, uint256 s1, , ) = fundToken.redemptions(req1);
 
         vm.startPrank(redemptionApprover);
 
@@ -537,8 +537,8 @@ contract FundIntegrationTest is FundTestBase {
         uint256 req1 = _requestRedemption(user1, sharesA);
         uint256 req2 = _requestRedemption(user2, sharesB);
 
-        (,, uint256 x1,,,) = fundToken.redemptions(req1);
-        (,, uint256 x2,,,) = fundToken.redemptions(req2);
+        (, , uint256 x1, , , ) = fundToken.redemptions(req1);
+        (, , uint256 x2, , , ) = fundToken.redemptions(req2);
 
         // User1: 100 SHARE at NAV=1.1 → 110 ASSET (profit!)
         assertEq(x1, 110e6);
@@ -558,7 +558,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User requests redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Pause
         vm.prank(admin);
@@ -579,7 +579,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User requests redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Pause
         vm.prank(admin);
@@ -601,7 +601,7 @@ contract FundIntegrationTest is FundTestBase {
         // Request redemption (shares are burned)
         uint256 reqId = _requestRedemption(user1, 50e18);
         assertEq(fundToken.balanceOf(user1), 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Pause
         vm.prank(admin);
@@ -658,7 +658,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Request redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove from whitelist AFTER request
         vm.prank(blocklistAdmin);
@@ -678,7 +678,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Request redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove from whitelist
         vm.prank(blocklistAdmin);
@@ -701,7 +701,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Request redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove user from whitelist
         vm.prank(blocklistAdmin);
@@ -722,7 +722,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Request redemption
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove from whitelist
         vm.prank(blocklistAdmin);
@@ -764,7 +764,7 @@ contract FundIntegrationTest is FundTestBase {
         // Redeem 50 SHARE (Pending), leaving 50 in balance
         uint256 reqId = _requestRedemption(user1, 50e18);
         assertEq(fundToken.balanceOf(user1), 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove from whitelist
         vm.prank(blocklistAdmin);
@@ -795,7 +795,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // Request redemption with old approver in place
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Admin grants REDEMPTION_APPROVER_ROLE to a new approver
         address newApprover = makeAddr("newApprover");
@@ -816,7 +816,7 @@ contract FundIntegrationTest is FundTestBase {
         _deposit(user1, 100e6);
 
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Revoke old approver
         vm.prank(admin);
@@ -826,7 +826,9 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(redemptionApprover);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, redemptionApprover, REDEMPTION_APPROVER_ROLE
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                redemptionApprover,
+                REDEMPTION_APPROVER_ROLE
             )
         );
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
@@ -839,7 +841,8 @@ contract FundIntegrationTest is FundTestBase {
     function test_INT27_setOracle_subsequentMintUsesNewOracle() public {
         // Deploy a new oracle with different initial NAV (2e18 = 2:1)
         bytes memory newOracleInit = abi.encodeCall(
-            CoboFundOracle.initialize, (admin, 2e18, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+            CoboFundOracle.initialize,
+            (admin, 2e18, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
         );
         CoboFundOracle newOracle = CoboFundOracle(address(new ERC1967Proxy(address(oracleImpl), newOracleInit)));
         // Grant updater role on new oracle
@@ -864,10 +867,13 @@ contract FundIntegrationTest is FundTestBase {
         // User deposits into current vault
         _deposit(user1, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Deploy a new vault
-        bytes memory newVaultInit = abi.encodeCall(CoboFundVault.initialize, (address(asset), address(fundToken), admin));
+        bytes memory newVaultInit = abi.encodeCall(
+            CoboFundVault.initialize,
+            (address(asset), address(fundToken), admin)
+        );
         CoboFundVault newVault = CoboFundVault(address(new ERC1967Proxy(address(vaultImpl), newVaultInit)));
 
         // Fund the new vault with ASSET
@@ -902,7 +908,9 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(blocklistAdmin);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, blocklistAdmin, MANAGER_ROLE
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                blocklistAdmin,
+                MANAGER_ROLE
             )
         );
         fundToken.removeFromWhitelist(user1);
@@ -945,7 +953,9 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(settlementOperator);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, settlementOperator, SETTLEMENT_OPERATOR_ROLE
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                settlementOperator,
+                SETTLEMENT_OPERATOR_ROLE
             )
         );
         vault.withdraw(custodyAddr, 10e6);
@@ -971,7 +981,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User requests redemption of 100 ASSET
         uint256 reqId = _requestRedemption(user1, 100e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
         assertEq(assetAmt, 100e6);
 
         // Approve fails because vault only has 50 ASSET
@@ -996,7 +1006,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User1 requests redemption of 100 SHARE → 100 ASSET
         uint256 req1 = _requestRedemption(user1, 100e18);
-        (,, uint256 x1, uint256 s1,,) = fundToken.redemptions(req1);
+        (, , uint256 x1, uint256 s1, , ) = fundToken.redemptions(req1);
 
         // Withdraw 100 → vault: 200
         vm.prank(settlementOperator);
@@ -1010,7 +1020,7 @@ contract FundIntegrationTest is FundTestBase {
 
         // User2 requests redemption of 50 SHARE → 50 ASSET
         uint256 req2 = _requestRedemption(user2, 50e18);
-        (,, uint256 x2, uint256 s2,,) = fundToken.redemptions(req2);
+        (, , uint256 x2, uint256 s2, , ) = fundToken.redemptions(req2);
 
         // Withdraw 30 → vault: 70
         vm.prank(settlementOperator);

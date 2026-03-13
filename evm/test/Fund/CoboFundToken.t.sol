@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./FundTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract CoboFundTokenTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════
@@ -10,7 +11,7 @@ contract CoboFundTokenTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_fundToken_initialize_normal() public view {
-        assertEq(fundToken.name(), "SHARE Gold Fund");
+        assertEq(fundToken.name(), "Example Fund Token");
         assertEq(fundToken.symbol(), "SHARE");
         assertEq(fundToken.decimals(), SHARE_DECIMALS);
         assertEq(address(fundToken.asset()), address(asset));
@@ -27,13 +28,14 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.initialize("X", "X", 18, address(asset), address(oracle), address(vault), admin, 1, 1);
     }
 
-    function test_fundToken_initialize_revert_zeroXaut() public {
+    function test_fundToken_initialize_revert_zeroAsset() public {
         CoboFundToken impl = new CoboFundToken();
         vm.expectRevert(LibFundErrors.ZeroAddress.selector);
         new ERC1967Proxy(
             address(impl),
             abi.encodeCall(
-                CoboFundToken.initialize, ("X", "X", 18, address(0), address(oracle), address(vault), admin, 1, 1)
+                CoboFundToken.initialize,
+                ("X", "X", 18, address(0), address(oracle), address(vault), admin, 1, 1)
             )
         );
     }
@@ -164,7 +166,7 @@ contract CoboFundTokenTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, 5e18);
 
         // Get stored values
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Fund vault (deposit already sent ASSET there)
         uint256 vaultBal = asset.balanceOf(address(vault));
@@ -176,7 +178,7 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
 
         // Check status
-        (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
+        (, , , , , CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
         assertEq(uint8(status), uint8(CoboFundToken.RedemptionStatus.Executed));
 
         // User received ASSET
@@ -187,7 +189,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_approveRedemption_revert_notApprover() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(attacker);
         vm.expectRevert();
@@ -205,7 +207,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_approveRedemption_revert_alreadyExecuted() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
@@ -220,7 +222,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_approveRedemption_revert_paramMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -231,7 +233,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_approveRedemption_revert_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(admin);
         fundToken.pause();
@@ -253,7 +255,7 @@ contract CoboFundTokenTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, 5e18);
         assertEq(fundToken.balanceOf(user1), balBefore - 5e18);
 
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
@@ -262,7 +264,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), balBefore);
 
         // Status = Rejected
-        (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
+        (, , , , , CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
         assertEq(uint8(status), uint8(CoboFundToken.RedemptionStatus.Rejected));
     }
 
@@ -270,7 +272,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_rejectRedemption_bypassWhitelist() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove user from whitelist
         vm.prank(blocklistAdmin);
@@ -286,7 +288,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_rejectRedemption_revert_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(admin);
         fundToken.pause();
@@ -441,10 +443,17 @@ contract CoboFundTokenTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_setOracle() public {
-        address newOracle = makeAddr("newOracle");
+        // Deploy a new oracle with the same initial NAV so newPrice >= oldPrice check passes.
+        CoboFundOracle newOracleImpl = new CoboFundOracle();
+        bytes memory initData = abi.encodeCall(
+            CoboFundOracle.initialize,
+            (admin, INITIAL_NAV, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+        );
+        CoboFundOracle newOracle = CoboFundOracle(address(new ERC1967Proxy(address(newOracleImpl), initData)));
+
         vm.prank(admin);
-        fundToken.setOracle(newOracle);
-        assertEq(address(fundToken.oracle()), newOracle);
+        fundToken.setOracle(address(newOracle));
+        assertEq(address(fundToken.oracle()), address(newOracle));
     }
 
     function test_setOracle_revert_zeroAddress() public {
@@ -526,7 +535,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(randomToken.balanceOf(admin), 100e18);
     }
 
-    function test_fundToken_rescueERC20_xaut() public {
+    function test_fundToken_rescueERC20_asset() public {
         // FundToken should not hold ASSET, but if it does, admin can rescue it
         asset.mint(address(fundToken), 100e6);
         vm.prank(admin);
@@ -534,7 +543,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(asset.balanceOf(admin), 100e6);
     }
 
-    function test_fundToken_rescueERC20_xaue() public {
+    function test_fundToken_rescueERC20_share() public {
         // FundToken should not hold SHARE, but if it does, admin can rescue it
         uint256 shares = _deposit(user1, 10e6);
 
@@ -685,7 +694,8 @@ contract CoboFundTokenTest is FundTestBase {
         new ERC1967Proxy(
             address(impl),
             abi.encodeCall(
-                CoboFundToken.initialize, ("X", "X", 18, address(asset), address(0), address(vault), admin, 1, 1)
+                CoboFundToken.initialize,
+                ("X", "X", 18, address(asset), address(0), address(vault), admin, 1, 1)
             )
         );
     }
@@ -697,7 +707,8 @@ contract CoboFundTokenTest is FundTestBase {
         new ERC1967Proxy(
             address(impl),
             abi.encodeCall(
-                CoboFundToken.initialize, ("X", "X", 18, address(asset), address(oracle), address(0), admin, 1, 1)
+                CoboFundToken.initialize,
+                ("X", "X", 18, address(asset), address(oracle), address(0), admin, 1, 1)
             )
         );
     }
@@ -785,14 +796,12 @@ contract CoboFundTokenTest is FundTestBase {
 
     /// @dev N-MNT-12: NAV=0 reverts with ZeroNetValue
     function test_N_MNT_12_zeroNAV() public {
-        // Deploy a mock oracle that returns 0
+        // setOracle with a zero-price oracle is prevented by the OraclePriceDecrease check
+        // (newPrice=0 < oldPrice=1e18), so a zero-NAV oracle can never be installed.
         MockZeroOracle zeroOracle = new MockZeroOracle();
         vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.OraclePriceDecrease.selector, INITIAL_NAV, uint256(0)));
         fundToken.setOracle(address(zeroOracle));
-
-        vm.prank(user1);
-        vm.expectRevert(LibFundErrors.ZeroNetValue.selector);
-        fundToken.mint(10e6);
     }
 
     /// @dev N-MNT-13: zero shares revert (tiny amount with huge NAV)
@@ -1017,11 +1026,11 @@ contract CoboFundTokenTest is FundTestBase {
         _deposit(user1, 10e6);
 
         // Expected assetAmt at NAV=1e18: 5e18 * 1e18 / (1e12 * 1e18) = 5e6
-        uint256 expectedXaut = 5e6;
-        uint256 expectedXaue = 5e18;
+        uint256 expectedAsset = 5e6;
+        uint256 expectedShare = 5e18;
 
         vm.expectEmit(true, true, false, true, address(fundToken));
-        emit CoboFundToken.RedemptionRequested(0, user1, expectedXaut, expectedXaue, block.timestamp, user1);
+        emit CoboFundToken.RedemptionRequested(0, user1, expectedAsset, expectedShare, block.timestamp, user1);
 
         _requestRedemption(user1, 5e18);
     }
@@ -1070,7 +1079,7 @@ contract CoboFundTokenTest is FundTestBase {
 
         // minRedeemShares = 1e18
         uint256 reqId = _requestRedemption(user1, 1e18);
-        (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
+        (, , , , , CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
         assertEq(uint8(status), uint8(CoboFundToken.RedemptionStatus.Pending));
     }
 
@@ -1103,8 +1112,8 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 40e18);
 
         // Both should be Pending
-        (,,,,, CoboFundToken.RedemptionStatus s0) = fundToken.redemptions(r0);
-        (,,,,, CoboFundToken.RedemptionStatus s1) = fundToken.redemptions(r1);
+        (, , , , , CoboFundToken.RedemptionStatus s0) = fundToken.redemptions(r0);
+        (, , , , , CoboFundToken.RedemptionStatus s1) = fundToken.redemptions(r1);
         assertEq(uint8(s0), uint8(CoboFundToken.RedemptionStatus.Pending));
         assertEq(uint8(s1), uint8(CoboFundToken.RedemptionStatus.Pending));
     }
@@ -1122,23 +1131,23 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-REQ-15: asset amount calculation at NAV=1e18
-    function test_N_REQ_15_xautCalc_nav1() public {
+    function test_N_REQ_15_assetCalc_nav1() public {
         _deposit(user1, 100e6);
 
         uint256 reqId = _requestRedemption(user1, 100e18);
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         // 100e18 * 1e18 / (1e12 * 1e18) = 100e6
         assertEq(assetAmt, 100e6);
     }
 
     /// @dev N-REQ-16: asset amount calculation at NAV=1.05e18
-    function test_N_REQ_16_xautCalc_nav105() public {
+    function test_N_REQ_16_assetCalc_nav105() public {
         _deposit(user1, 100e6);
 
         vm.warp(block.timestamp + 365 days); // APR 5% → NAV ~ 1.05e18
 
         uint256 reqId = _requestRedemption(user1, 100e18);
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         // 100e18 * 1.05e18 / (1e12 * 1e18) = 105e6
         uint256 navNow = oracle.getLatestPrice();
         uint256 expected = (uint256(100e18) * navNow) / (uint256(1e12) * uint256(1e18));
@@ -1146,7 +1155,7 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-REQ-17: asset amount calculation at NAV=1000e18
-    function test_N_REQ_17_xautCalc_nav1000() public {
+    function test_N_REQ_17_assetCalc_nav1000() public {
         MockFixedOracle fixedOracle = new MockFixedOracle(1000e18);
         vm.prank(admin);
         fundToken.setOracle(address(fixedOracle));
@@ -1161,34 +1170,28 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(shares, 1e17);
 
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         // shares * 1000e18 / (1e12 * 1e18) = 1e17 * 1000e18 / 1e30 = 100e6
         assertEq(assetAmt, 100e6);
     }
 
     /// @dev N-REQ-20: assetAmount=0 edge case reverts ZeroAssetAmount
-    function test_N_REQ_20_zeroXautAmount() public {
-        // Strategy: mint shares with a low NAV, then switch to a high NAV for redemption.
-        // With high NAV at redemption time, assetAmount = shares * nav / (1e12 * 1e18)
-        // We need a small number of shares and moderate nav so that the product rounds to 0.
-        // Actually simpler: use nav=1 (1 wei). Then assetAmt = shares * 1 / (1e12 * 1e18) = shares / 1e30.
-        // So if shares < 1e30, assetAmt rounds to 0.
+    function test_N_REQ_20_zeroAssetAmount() public {
+        // Strategy: redeem 1 wei of shares at NAV=1e18.
+        // assetAmount = mulDiv(1 * 1e18, 1e6, 1e18 * 1e18) = 1e24 / 1e36 = 0 (rounds down).
+        // Switching to a lower-price oracle is now prevented by OraclePriceDecrease,
+        // so we trigger ZeroAssetAmount directly using dust shares at normal NAV.
 
-        // Set min thresholds to 0 to bypass boundary checks
+        // Set min thresholds to 0 to allow dust amounts
         vm.prank(admin);
         fundToken.setMinDepositAmount(0);
         vm.prank(admin);
         fundToken.setMinRedeemShares(0);
 
-        // Mint shares at NAV=1e18 (normal)
-        _deposit(user1, 10e6); // 10 SHARE = 10e18 shares
+        // Mint shares at NAV=1e18
+        _deposit(user1, 10e6);
 
-        // Now switch oracle to NAV=1 (1 wei)
-        MockFixedOracle tinyOracle = new MockFixedOracle(1);
-        vm.prank(admin);
-        fundToken.setOracle(address(tinyOracle));
-
-        // Redeem 1 share: assetAmt = 1 * 1 / (1e12 * 1e18) = 0
+        // Redeem 1 wei of shares: assetAmt = 1 * 1e18 * 1e6 / (1e18 * 1e18) = 0
         vm.prank(user1);
         vm.expectRevert(LibFundErrors.ZeroAssetAmount.selector);
         fundToken.requestRedemption(1);
@@ -1203,7 +1206,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(reqId, 0);
 
         // Verify the returned reqId matches stored
-        (uint256 id,,,,,) = fundToken.redemptions(reqId);
+        (uint256 id, , , , , ) = fundToken.redemptions(reqId);
         assertEq(id, reqId);
     }
 
@@ -1212,10 +1215,10 @@ contract CoboFundTokenTest is FundTestBase {
     // ═══════════════════════════════════════════════════════════════════
 
     /// @dev N-APR-2: ASSET flows from Vault to user on approval
-    function test_N_APR_2_xautFlow() public {
+    function test_N_APR_2_assetFlow() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         uint256 vaultBefore = asset.balanceOf(address(vault));
         uint256 userBefore = asset.balanceOf(user1);
@@ -1231,7 +1234,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_APR_3_event() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.expectEmit(true, true, false, true, address(fundToken));
         emit CoboFundToken.RedemptionExecuted(reqId, user1, assetAmt, shareAmt, block.timestamp, redemptionApprover);
@@ -1244,7 +1247,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_APR_7_alreadyRejected() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Reject first
         vm.prank(redemptionApprover);
@@ -1260,7 +1263,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_APR_9_userMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1268,10 +1271,10 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-APR-10: assetAmount mismatch
-    function test_N_APR_10_xautMismatch() public {
+    function test_N_APR_10_assetMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1279,10 +1282,10 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-APR-11: shareAmount mismatch
-    function test_N_APR_11_xaueMismatch() public {
+    function test_N_APR_11_shareMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1293,7 +1296,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_APR_12_vaultInsufficient() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Drain vault via settlement
         uint256 vaultBal = asset.balanceOf(address(vault));
@@ -1328,7 +1331,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), balBefore - 5e18);
         assertEq(fundToken.totalSupply(), supplyBefore - 5e18);
 
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
@@ -1342,7 +1345,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_3_event() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.expectEmit(true, true, false, true, address(fundToken));
         emit CoboFundToken.RedemptionRejected(reqId, user1, assetAmt, shareAmt, block.timestamp, redemptionApprover);
@@ -1355,7 +1358,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_5_notApprover() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(attacker);
         vm.expectRevert();
@@ -1366,7 +1369,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_6_notPending() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Execute first
         vm.prank(redemptionApprover);
@@ -1382,7 +1385,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_7_userMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1390,10 +1393,10 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-REJ-8: assetAmount mismatch
-    function test_N_REJ_8_xautMismatch() public {
+    function test_N_REJ_8_assetMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1401,10 +1404,10 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     /// @dev N-REJ-9: shareAmount mismatch
-    function test_N_REJ_9_xaueMismatch() public {
+    function test_N_REJ_9_shareMismatch() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionParamMismatch.selector, reqId));
@@ -1422,12 +1425,12 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C1_normalPath() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
-        (,,,,, CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
+        (, , , , , CoboFundToken.RedemptionStatus status) = fundToken.redemptions(reqId);
         assertEq(uint8(status), uint8(CoboFundToken.RedemptionStatus.Rejected));
         assertEq(fundToken.balanceOf(user1), 10e18);
     }
@@ -1436,7 +1439,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C3_whitelisted_frozen() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Freeze user
         vm.prank(blocklistAdmin);
@@ -1452,7 +1455,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C4_removed_frozen() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Remove + freeze
         vm.prank(blocklistAdmin);
@@ -1470,7 +1473,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C5_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(admin);
         fundToken.pause();
@@ -1484,7 +1487,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C6_removed_frozen_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
@@ -1502,7 +1505,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C7_removed_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
@@ -1518,7 +1521,7 @@ contract CoboFundTokenTest is FundTestBase {
     function test_N_REJ_C8_whitelisted_frozen_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);

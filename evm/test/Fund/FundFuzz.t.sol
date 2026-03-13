@@ -17,7 +17,7 @@ contract FundTokenHarness is CoboFundToken {
     }
 }
 
-/// @title FundFuzzTest - Fuzz and invariant tests for the SHARE gold fund tokenization system.
+/// @title FundFuzzTest - Fuzz and invariant tests for NAV-based fund tokenization system.
 /// @dev Covers FZ-1..FZ-7 (fuzz tests) and INV-1..INV-9 (scenario-based invariant tests).
 contract FundFuzzTest is FundTestBase {
     // ─── Harness ─────────────────────────────────────────────────────────
@@ -94,7 +94,8 @@ contract FundFuzzTest is FundTestBase {
                 new ERC1967Proxy(
                     address(oracleImpl),
                     abi.encodeCall(
-                        CoboFundOracle.initialize, (admin, baseNV, apr, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+                        CoboFundOracle.initialize,
+                        (admin, baseNV, apr, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
                     )
                 )
             )
@@ -116,7 +117,7 @@ contract FundFuzzTest is FundTestBase {
 
         uint256 totalSupplyBefore = fundToken.totalSupply();
         uint256 vaultBalBefore = asset.balanceOf(address(vault));
-        uint256 userXautBefore = asset.balanceOf(user1);
+        uint256 userAssetBefore = asset.balanceOf(user1);
 
         vm.prank(user1);
         uint256 shares = fundToken.mint(assetAmount);
@@ -125,7 +126,7 @@ contract FundFuzzTest is FundTestBase {
         assertGt(shares, 0, "FZ-4: zero shares minted");
 
         // ASSET correctly transferred from user to vault
-        assertEq(asset.balanceOf(user1), userXautBefore - assetAmount, "FZ-4: user ASSET balance wrong");
+        assertEq(asset.balanceOf(user1), userAssetBefore - assetAmount, "FZ-4: user ASSET balance wrong");
         assertEq(asset.balanceOf(address(vault)), vaultBalBefore + assetAmount, "FZ-4: vault ASSET balance wrong");
 
         // totalSupply increased by shares
@@ -155,7 +156,7 @@ contract FundFuzzTest is FundTestBase {
         assertEq(fundToken.totalSupply(), totalSupplyBefore - shareAmount, "FZ-5: totalSupply not reduced correctly");
 
         // assetAmount in the request must be > 0
-        (,, uint256 assetAmt,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, , , ) = fundToken.redemptions(reqId);
         assertGt(assetAmt, 0, "FZ-5: zero assetAmount in redemption request");
     }
 
@@ -170,7 +171,7 @@ contract FundFuzzTest is FundTestBase {
         // Bound to valid range (> 0 and <= vault balance)
         amount = bound(amount, 1, vaultBalance);
 
-        uint256 user1XautBefore = asset.balanceOf(user1);
+        uint256 user1AssetBefore = asset.balanceOf(user1);
 
         vm.prank(settlementOperator);
         vault.withdraw(user1, amount);
@@ -178,7 +179,7 @@ contract FundFuzzTest is FundTestBase {
         // Vault balance decreased
         assertEq(asset.balanceOf(address(vault)), vaultBalance - amount, "FZ-6: vault balance not decreased correctly");
         // User received the amount
-        assertEq(asset.balanceOf(user1), user1XautBefore + amount, "FZ-6: user balance not increased correctly");
+        assertEq(asset.balanceOf(user1), user1AssetBefore + amount, "FZ-6: user balance not increased correctly");
     }
 
     // ─── FZ-7: updateRate APR value within valid range ──────────────────
@@ -282,38 +283,38 @@ contract FundFuzzTest is FundTestBase {
         uint256 reqId1 = _requestRedemption(user1, 50e18);
         uint256 reqId2 = _requestRedemption(user1, 50e18);
 
-        (,, uint256 xautAmt1, uint256 xaueAmt1,,) = fundToken.redemptions(reqId1);
-        (,, uint256 xautAmt2, uint256 xaueAmt2,,) = fundToken.redemptions(reqId2);
+        (, , uint256 assetAmt1, uint256 shareAmt1, , ) = fundToken.redemptions(reqId1);
+        (, , uint256 assetAmt2, uint256 shareAmt2, , ) = fundToken.redemptions(reqId2);
 
         // Approve reqId1
         // Fund vault with enough ASSET for payout
-        asset.mint(address(vault), xautAmt1);
+        asset.mint(address(vault), assetAmt1);
         vm.prank(redemptionApprover);
-        fundToken.approveRedemption(reqId1, user1, xautAmt1, xaueAmt1);
+        fundToken.approveRedemption(reqId1, user1, assetAmt1, shareAmt1);
 
         // Try to approve again — must revert
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionNotPending.selector, reqId1));
-        fundToken.approveRedemption(reqId1, user1, xautAmt1, xaueAmt1);
+        fundToken.approveRedemption(reqId1, user1, assetAmt1, shareAmt1);
 
         // Try to reject an already approved request — must revert
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionNotPending.selector, reqId1));
-        fundToken.rejectRedemption(reqId1, user1, xautAmt1, xaueAmt1);
+        fundToken.rejectRedemption(reqId1, user1, assetAmt1, shareAmt1);
 
         // Reject reqId2
         vm.prank(redemptionApprover);
-        fundToken.rejectRedemption(reqId2, user1, xautAmt2, xaueAmt2);
+        fundToken.rejectRedemption(reqId2, user1, assetAmt2, shareAmt2);
 
         // Try to reject again — must revert
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionNotPending.selector, reqId2));
-        fundToken.rejectRedemption(reqId2, user1, xautAmt2, xaueAmt2);
+        fundToken.rejectRedemption(reqId2, user1, assetAmt2, shareAmt2);
 
         // Try to approve an already rejected request — must revert
         vm.prank(redemptionApprover);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.RedemptionNotPending.selector, reqId2));
-        fundToken.approveRedemption(reqId2, user1, xautAmt2, xaueAmt2);
+        fundToken.approveRedemption(reqId2, user1, assetAmt2, shareAmt2);
     }
 
     // ─── INV-4: redemptionCount strictly increasing ────────────────────
@@ -363,7 +364,7 @@ contract FundFuzzTest is FundTestBase {
         assertEq(asset.balanceOf(address(vault)), 300e6, "INV-5: after request (no ASSET change)");
 
         // 4. Approve redemption → vault pays assetAmount to user
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
         vm.prank(redemptionApprover);
         fundToken.approveRedemption(reqId, user1, assetAmt, shareAmt);
         assertEq(asset.balanceOf(address(vault)), 300e6 - assetAmt, "INV-5: after approve");
@@ -445,7 +446,7 @@ contract FundFuzzTest is FundTestBase {
         // Deposit and request redemption
         _deposit(user1, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
@@ -461,7 +462,7 @@ contract FundFuzzTest is FundTestBase {
         fundToken.addToWhitelist(user1);
 
         uint256 reqId2 = _requestRedemption(user1, 50e18);
-        (,, uint256 xautAmt2, uint256 xaueAmt2,,) = fundToken.redemptions(reqId2);
+        (, , uint256 assetAmt2, uint256 shareAmt2, , ) = fundToken.redemptions(reqId2);
 
         // Pause the system
         vm.prank(admin);
@@ -470,7 +471,7 @@ contract FundFuzzTest is FundTestBase {
         // rejectRedemption should revert because _mintBypass has whenNotPaused
         vm.prank(redemptionApprover);
         vm.expectRevert();
-        fundToken.rejectRedemption(reqId2, user1, xautAmt2, xaueAmt2);
+        fundToken.rejectRedemption(reqId2, user1, assetAmt2, shareAmt2);
     }
 
     // ─── INV-9: After pause, only forceRedeem + admin functions work ────
@@ -483,7 +484,7 @@ contract FundFuzzTest is FundTestBase {
         _deposit(user1, 100e6);
         _deposit(user2, 100e6);
         uint256 reqId = _requestRedemption(user1, 50e18);
-        (,, uint256 assetAmt, uint256 shareAmt,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
         // Pause the system
         vm.prank(admin);

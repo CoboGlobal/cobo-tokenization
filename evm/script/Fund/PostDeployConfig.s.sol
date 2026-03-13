@@ -6,8 +6,8 @@ import {CoboFundOracle} from "../src/Fund/CoboFundOracle.sol";
 import {CoboFundToken} from "../src/Fund/CoboFundToken.sol";
 import {CoboFundVault} from "../src/Fund/CoboFundVault.sol";
 
-/// @title PostDeployConfig - Post-deployment role and whitelist configuration for SHARE.
-/// @dev Run after DeployFundProxy.s.sol to configure all roles and whitelists per SHARE Transaction Checklist §2.
+/// @title PostDeployConfig - Post-deployment role and whitelist configuration for fund proxies.
+/// @dev Run after DeployFundProxy.s.sol to configure all roles and whitelists per fund deployment checklist.
 ///
 ///      The broadcaster MUST be the DEFAULT_ADMIN_ROLE holder (the Safe multisig or admin EOA
 ///      that was passed as `admin` during deployment).

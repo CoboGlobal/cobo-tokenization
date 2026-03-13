@@ -21,11 +21,12 @@ contract CoboFundVaultTest is FundTestBase {
         vault.initialize(address(asset), address(fundToken), admin);
     }
 
-    function test_vault_initialize_revert_zeroXaut() public {
+    function test_vault_initialize_revert_zeroAsset() public {
         CoboFundVault impl = new CoboFundVault();
         vm.expectRevert(LibFundErrors.ZeroAddress.selector);
         new ERC1967Proxy(
-            address(impl), abi.encodeCall(CoboFundVault.initialize, (address(0), address(fundToken), admin))
+            address(impl),
+            abi.encodeCall(CoboFundVault.initialize, (address(0), address(fundToken), admin))
         );
     }
 
@@ -39,7 +40,8 @@ contract CoboFundVaultTest is FundTestBase {
         CoboFundVault impl = new CoboFundVault();
         vm.expectRevert(LibFundErrors.ZeroAddress.selector);
         new ERC1967Proxy(
-            address(impl), abi.encodeCall(CoboFundVault.initialize, (address(asset), address(fundToken), address(0)))
+            address(impl),
+            abi.encodeCall(CoboFundVault.initialize, (address(asset), address(fundToken), address(0)))
         );
     }
 
@@ -290,8 +292,8 @@ contract CoboFundVaultTest is FundTestBase {
         bytes memory fundTokenInit2 = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "XAUE2",
-                "XAUE2",
+                "SHARE2",
+                "SHARE2",
                 SHARE_DECIMALS,
                 address(asset),
                 address(oracle),

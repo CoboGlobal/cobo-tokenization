@@ -138,7 +138,9 @@ contract FundUpgradeTest is FundTestBase {
     function test_OZ_AC_4_nonAdminGrantFails() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, randomUser, DEFAULT_ADMIN_ROLE
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                randomUser,
+                DEFAULT_ADMIN_ROLE
             )
         );
         vm.prank(randomUser);
@@ -199,11 +201,11 @@ contract FundUpgradeTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, shares);
 
         // Read the redemption data for the approve call
-        (, address reqUser, uint256 reqXaut, uint256 reqXaue,,) = fundToken.redemptions(reqId);
+        (, address reqUser, uint256 reqAsset, uint256 reqShare, , ) = fundToken.redemptions(reqId);
 
         // multiRoleUser acts as approver
         vm.prank(multiRoleUser);
-        fundToken.approveRedemption(reqId, reqUser, reqXaut, reqXaue);
+        fundToken.approveRedemption(reqId, reqUser, reqAsset, reqShare);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -398,8 +400,8 @@ contract FundUpgradeTest is FundTestBase {
         (
             uint256 v1_rId,
             address v1_rUser,
-            uint256 v1_rXaut,
-            uint256 v1_rXaue,
+            uint256 v1_rAsset,
+            uint256 v1_rShare,
             uint256 v1_rAt,
             CoboFundToken.RedemptionStatus v1_rStatus
         ) = fundToken.redemptions(reqId);
@@ -412,7 +414,7 @@ contract FundUpgradeTest is FundTestBase {
         uint256 v1_oMinUpdateInterval = oracle.minUpdateInterval();
 
         // Record Vault V1 state
-        uint256 v1_vaultXautBalance = asset.balanceOf(address(vault));
+        uint256 v1_vaultAssetBalance = asset.balanceOf(address(vault));
         bool v1_vaultWL_user1 = vault.whitelist(user1);
 
         // --- Upgrade all three contracts ---
@@ -438,15 +440,15 @@ contract FundUpgradeTest is FundTestBase {
         (
             uint256 v2_rId,
             address v2_rUser,
-            uint256 v2_rXaut,
-            uint256 v2_rXaue,
+            uint256 v2_rAsset,
+            uint256 v2_rShare,
             uint256 v2_rAt,
             CoboFundToken.RedemptionStatus v2_rStatus
         ) = fundToken.redemptions(reqId);
         assertEq(v2_rId, v1_rId, "redemption id changed");
         assertEq(v2_rUser, v1_rUser, "redemption user changed");
-        assertEq(v2_rXaut, v1_rXaut, "redemption assetAmount changed");
-        assertEq(v2_rXaue, v1_rXaue, "redemption shareAmount changed");
+        assertEq(v2_rAsset, v1_rAsset, "redemption assetAmount changed");
+        assertEq(v2_rShare, v1_rShare, "redemption shareAmount changed");
         assertEq(v2_rAt, v1_rAt, "redemption requestedAt changed");
         assertEq(uint256(v2_rStatus), uint256(v1_rStatus), "redemption status changed");
 
@@ -458,7 +460,7 @@ contract FundUpgradeTest is FundTestBase {
         assertEq(oracle.minUpdateInterval(), v1_oMinUpdateInterval, "oracle minUpdateInterval changed");
 
         // --- Verify Vault state preserved ---
-        assertEq(asset.balanceOf(address(vault)), v1_vaultXautBalance, "vault ASSET balance changed");
+        assertEq(asset.balanceOf(address(vault)), v1_vaultAssetBalance, "vault ASSET balance changed");
         assertEq(vault.whitelist(user1), v1_vaultWL_user1, "vault whitelist user1 changed");
     }
 
@@ -594,7 +596,9 @@ contract FundUpgradeTest is FundTestBase {
         uint256 additionalShares = _deposit(user1, 10e6);
         assertGt(additionalShares, 0, "Deposit after upgrade failed");
         assertEq(
-            fundToken.balanceOf(user1), balanceBefore + additionalShares, "Balance incorrect after post-upgrade deposit"
+            fundToken.balanceOf(user1),
+            balanceBefore + additionalShares,
+            "Balance incorrect after post-upgrade deposit"
         );
     }
 
@@ -637,10 +641,10 @@ contract FundUpgradeTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, redeemShares);
 
         // Approver can approve the request
-        (, address reqUser, uint256 reqXaut, uint256 reqXaue,,) = fundToken.redemptions(reqId);
+        (, address reqUser, uint256 reqAsset, uint256 reqShare, , ) = fundToken.redemptions(reqId);
 
         vm.prank(redemptionApprover);
-        fundToken.approveRedemption(reqId, reqUser, reqXaut, reqXaue);
+        fundToken.approveRedemption(reqId, reqUser, reqAsset, reqShare);
 
         // --- Step 4: Upgrade NavVault only ---
         vm.prank(upgrader);

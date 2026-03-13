@@ -3,9 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -13,6 +11,7 @@ import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Mu
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import {LibFundErrors} from "./libraries/LibFundErrors.sol";
@@ -64,15 +63,15 @@ contract CoboFundToken is
     struct RedemptionRequest {
         uint256 id;
         address user;
-        uint256 assetAmount; // ASSET to pay (asset token decimals)
-        uint256 shareAmount; // shares burned (share token decimals)
+        uint256 assetAmount; // asset token amount to pay (asset token decimals)
+        uint256 shareAmount; // share token amount burned (share token decimals)
         uint256 requestedAt;
         RedemptionStatus status;
     }
 
     // ─── State Variables ────────────────────────────────────────────────
 
-    /// @notice The asset token (ASSET).
+    /// @notice The underlying asset token.
     IERC20 public asset;
 
     /// @notice The NAV oracle contract.
@@ -87,7 +86,7 @@ contract CoboFundToken is
     /// @notice Minimum redeem amount in share token decimals.
     uint256 public minRedeemShares;
 
-    /// @notice Asset token decimals (cached from ASSET).
+    /// @notice Asset token decimals (cached from underlying asset token).
     uint8 public assetDecimals;
 
     /// @notice Share token decimals.
@@ -104,6 +103,11 @@ contract CoboFundToken is
 
     /// @notice Redemption requests.
     RedemptionRequest[] public redemptions;
+
+    /// @notice Total asset amount owed to users across all Pending redemption requests.
+    /// @dev Incremented on requestRedemption, decremented on approveRedemption/rejectRedemption.
+    ///      Used by setVault() to verify the new vault has sufficient balance and allowance.
+    uint256 public totalPendingAssets;
 
     // ─── Events ─────────────────────────────────────────────────────────
 
@@ -152,10 +156,10 @@ contract CoboFundToken is
     // ─── Initializer ────────────────────────────────────────────────────
 
     /// @notice Initialize the share management contract.
-    /// @param name_ Token name (e.g., "SHARE Gold Fund").
-    /// @param symbol_ Token symbol (e.g., "SHARE").
+    /// @param name_ Token name (e.g., "Example Fund Token").
+    /// @param symbol_ Token symbol (e.g., "EFT").
     /// @param decimals_ Token decimals (e.g., 18).
-    /// @param asset_ Address of the asset token (ASSET).
+    /// @param asset_ Address of the underlying asset token.
     /// @param oracle_ Address of the NAV oracle.
     /// @param vault_ Address of the asset custody vault.
     /// @param admin Address to receive DEFAULT_ADMIN_ROLE.
@@ -224,14 +228,22 @@ contract CoboFundToken is
 
     /// @dev Convert asset raw amount to share raw amount using NAV per share.
     ///      shares = assetAmount * shareScale * PRECISION / (nav * assetScale)
+    ///      Pre-condition: assetAmount * _shareScale must not overflow uint256.
+    ///      This holds in practice because assetAmount is bounded by the token's total supply
+    ///      and _shareScale = 10^decimals (max 10^18 for 18-decimal tokens), and Solidity 0.8+
+    ///      checked arithmetic will revert rather than silently overflow.
     function _assetToShares(uint256 assetAmount, uint256 nav) internal view returns (uint256) {
-        return (assetAmount * _shareScale * _PRECISION) / (nav * _assetScale);
+        return Math.mulDiv(assetAmount * _shareScale, _PRECISION, nav * _assetScale);
     }
 
     /// @dev Convert share raw amount to asset raw amount using NAV per share.
     ///      assetAmount = shareAmount * nav * assetScale / (shareScale * PRECISION)
+    ///      Pre-condition: shareAmount * nav must not overflow uint256.
+    ///      This holds in practice because shareAmount is bounded by totalSupply() and nav
+    ///      grows linearly with APR, and Solidity 0.8+ checked arithmetic will revert rather
+    ///      than silently overflow.
     function _sharesToAsset(uint256 shareAmount, uint256 nav) internal view returns (uint256) {
-        return (shareAmount * nav * _assetScale) / (_shareScale * _PRECISION);
+        return Math.mulDiv(shareAmount * nav, _assetScale, _shareScale * _PRECISION);
     }
 
     // ─── Bypass Functions ───────────────────────────────────────────────
@@ -304,6 +316,7 @@ contract CoboFundToken is
             })
         );
 
+        totalPendingAssets += assetAmount;
         emit RedemptionRequested(reqId, msg.sender, assetAmount, shareAmount, block.timestamp, msg.sender);
     }
 
@@ -313,14 +326,14 @@ contract CoboFundToken is
     /// @dev user/assetAmount/shareAmount params are for Cobo Guard calldata signing verification.
     /// @param reqId Redemption request ID.
     /// @param user Expected user address (verified against stored request).
-    /// @param assetAmount Expected ASSET amount (verified against stored request).
-    /// @param shareAmount Expected SHARE amount (verified against stored request).
-    function approveRedemption(uint256 reqId, address user, uint256 assetAmount, uint256 shareAmount)
-        external
-        onlyRole(REDEMPTION_APPROVER_ROLE)
-        whenNotPaused
-        nonReentrant
-    {
+    /// @param assetAmount Expected asset token amount (verified against stored request).
+    /// @param shareAmount Expected share token amount (verified against stored request).
+    function approveRedemption(
+        uint256 reqId,
+        address user,
+        uint256 assetAmount,
+        uint256 shareAmount
+    ) external onlyRole(REDEMPTION_APPROVER_ROLE) whenNotPaused nonReentrant {
         if (reqId >= redemptions.length) revert LibFundErrors.InvalidRedemptionRequest(reqId);
         RedemptionRequest storage req = redemptions[reqId];
 
@@ -332,6 +345,7 @@ contract CoboFundToken is
 
         // Update status first (checks-effects-interactions)
         req.status = RedemptionStatus.Executed;
+        totalPendingAssets -= assetAmount;
 
         // Pay asset from Vault to user (Vault has pre-approved this contract)
         asset.safeTransferFrom(vault, user, assetAmount);
@@ -347,13 +361,14 @@ contract CoboFundToken is
     ///      Implicitly pause-guarded: _mintBypass enforces whenNotPaused.
     /// @param reqId Redemption request ID.
     /// @param user Expected user address (verified against stored request).
-    /// @param assetAmount Expected ASSET amount (verified against stored request).
-    /// @param shareAmount Expected SHARE amount (verified against stored request).
-    function rejectRedemption(uint256 reqId, address user, uint256 assetAmount, uint256 shareAmount)
-        external
-        onlyRole(REDEMPTION_APPROVER_ROLE)
-        nonReentrant
-    {
+    /// @param assetAmount Expected asset token amount (verified against stored request).
+    /// @param shareAmount Expected share token amount (verified against stored request).
+    function rejectRedemption(
+        uint256 reqId,
+        address user,
+        uint256 assetAmount,
+        uint256 shareAmount
+    ) external onlyRole(REDEMPTION_APPROVER_ROLE) nonReentrant {
         if (reqId >= redemptions.length) revert LibFundErrors.InvalidRedemptionRequest(reqId);
         RedemptionRequest storage req = redemptions[reqId];
 
@@ -363,6 +378,7 @@ contract CoboFundToken is
         }
 
         req.status = RedemptionStatus.Rejected;
+        totalPendingAssets -= assetAmount;
 
         // Mint back shares (bypass whitelist — user may have been removed)
         _mintBypass(user, shareAmount);
@@ -407,15 +423,37 @@ contract CoboFundToken is
     // ─── Admin Configuration ────────────────────────────────────────────
 
     /// @notice Set the NAV oracle address.
+    /// @dev Automatically pauses and unpauses around the switch to prevent any mint/redeem
+    ///      activity during migration. If the contract is already paused, the pause state is
+    ///      preserved after the call (i.e. it will not be unpaused).
     function setOracle(address oracle_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bool wasPaused = paused();
+        if (!wasPaused) _pause();
+        _setOracle(oracle_);
+        if (!wasPaused) _unpause();
+    }
+
+    /// @dev Validates and applies the new oracle address.
+    ///      The new oracle's current price must be >= the old oracle's to preserve NAV monotonicity.
+    function _setOracle(address oracle_) internal {
         if (oracle_ == address(0)) revert LibFundErrors.ZeroAddress();
+        uint256 oldPrice = oracle.getLatestPrice();
+        uint256 newPrice = ICoboFundOracle(oracle_).getLatestPrice();
+        if (newPrice < oldPrice) revert LibFundErrors.OraclePriceDecrease(oldPrice, newPrice);
         oracle = ICoboFundOracle(oracle_);
         emit OracleUpdated(oracle_);
     }
 
     /// @notice Set the asset custody vault address.
+    /// @dev New vault must hold sufficient assets and have approved this contract for at least
+    ///      totalPendingAssets, ensuring all outstanding redemptions remain executable after the switch.
     function setVault(address vault_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (vault_ == address(0)) revert LibFundErrors.ZeroAddress();
+        uint256 balance = asset.balanceOf(vault_);
+        if (balance < totalPendingAssets) revert LibFundErrors.InsufficientVaultBalance(balance, totalPendingAssets);
+        uint256 allowance = asset.allowance(vault_, address(this));
+        if (allowance < totalPendingAssets)
+            revert LibFundErrors.InsufficientVaultAllowance(allowance, totalPendingAssets);
         vault = vault_;
         emit VaultUpdated(vault_);
     }
@@ -461,8 +499,9 @@ contract CoboFundToken is
     /// @dev Prevents revoking the last DEFAULT_ADMIN_ROLE holder.
     function revokeRole(bytes32 role, address account) public override(AccessControlUpgradeable, IAccessControl) {
         if (
-            role == DEFAULT_ADMIN_ROLE && hasRole(DEFAULT_ADMIN_ROLE, account)
-                && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
+            role == DEFAULT_ADMIN_ROLE &&
+            hasRole(DEFAULT_ADMIN_ROLE, account) &&
+            getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
         ) {
             revert LibFundErrors.LastAdminCannotBeRevoked();
         }
@@ -480,7 +519,7 @@ contract CoboFundToken is
     // ─── Asset Rescue ───────────────────────────────────────────────────
 
     /// @notice Rescue accidentally sent ERC20 tokens.
-    /// @dev This contract should not hold any ASSET or SHARE under normal operations.
+    /// @dev This contract should not hold any asset tokens or share tokens under normal operations.
     function rescueERC20(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert LibFundErrors.ZeroAddress();
         IERC20(token).safeTransfer(to, amount);
@@ -509,5 +548,5 @@ contract CoboFundToken is
     // ─── Storage Gap ────────────────────────────────────────────────────
 
     /// @dev Reserved storage for future upgrades.
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 }

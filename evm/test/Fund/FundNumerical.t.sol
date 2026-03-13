@@ -37,7 +37,8 @@ contract FundNumericalTest is FundTestBase {
         // Deploy oracle proxy
         CoboFundOracle oImpl = new CoboFundOracle();
         bytes memory oInit = abi.encodeCall(
-            CoboFundOracle.initialize, (admin, initialNav, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+            CoboFundOracle.initialize,
+            (admin, initialNav, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
         );
         customOracle = CoboFundOracle(address(new ERC1967Proxy(address(oImpl), oInit)));
 
@@ -66,8 +67,10 @@ contract FundNumericalTest is FundTestBase {
 
         // Deploy Vault proxy
         CoboFundVault vImpl = new CoboFundVault();
-        bytes memory vInit =
-            abi.encodeCall(CoboFundVault.initialize, (address(mockAsset), address(customNav4626), admin));
+        bytes memory vInit = abi.encodeCall(
+            CoboFundVault.initialize,
+            (address(mockAsset), address(customNav4626), admin)
+        );
         customVault = CoboFundVault(address(new ERC1967Proxy(address(vImpl), vInit)));
 
         assertEq(address(customVault), predictedVault, "Vault address prediction mismatch");
@@ -109,7 +112,7 @@ contract FundNumericalTest is FundTestBase {
     ///      Formula: 1e6 * 10^12 * 1e18 / 2e18 = 5e17
     function test_NUM_2_decConvert_6_18_nav2e18() public {
         // Deploy custom oracle with NAV=2e18
-        (MockERC20 asset2,, CoboFundToken nav2,) = _deployCustomDecimals(6, 18, 2e18, 1e6, 1e18);
+        (MockERC20 asset2, , CoboFundToken nav2, ) = _deployCustomDecimals(6, 18, 2e18, 1e6, 1e18);
 
         _fundAndApprove(asset2, nav2, user1, 100e6);
 
@@ -122,7 +125,7 @@ contract FundNumericalTest is FundTestBase {
     ///      1e6 asset → 1e15 shares.
     ///      Formula: 1e6 * 1e12 * 1e18 / 1000e18 = 1e15
     function test_NUM_3_decConvert_6_18_nav1000e18() public {
-        (MockERC20 asset3,, CoboFundToken nav3,) = _deployCustomDecimals(6, 18, 1000e18, 1e6, 1e15);
+        (MockERC20 asset3, , CoboFundToken nav3, ) = _deployCustomDecimals(6, 18, 1000e18, 1e6, 1e15);
 
         _fundAndApprove(asset3, nav3, user1, 100e6);
 
@@ -135,7 +138,7 @@ contract FundNumericalTest is FundTestBase {
     ///      1e18 asset → 1e18 shares.
     ///      Formula: 1e18 * 1e18 * 1e18 / (1e18 * 1e18) = 1e18
     function test_NUM_4_decConvert_18_18_nav1e18() public {
-        (MockERC20 asset4,, CoboFundToken nav4,) = _deployCustomDecimals(18, 18, 1e18, 1e18, 1e18);
+        (MockERC20 asset4, , CoboFundToken nav4, ) = _deployCustomDecimals(18, 18, 1e18, 1e18, 1e18);
 
         _fundAndApprove(asset4, nav4, user1, 100e18);
 
@@ -148,7 +151,7 @@ contract FundNumericalTest is FundTestBase {
     ///      1e18 asset → 1e6 shares.
     ///      Formula: 1e18 * 1e6 * 1e18 / (1e18 * 1e18) = 1e6
     function test_NUM_5_decConvert_18_6_nav1e18() public {
-        (MockERC20 asset5,, CoboFundToken nav5,) = _deployCustomDecimals(18, 6, 1e18, 1e18, 1e6);
+        (MockERC20 asset5, , CoboFundToken nav5, ) = _deployCustomDecimals(18, 6, 1e18, 1e18, 1e6);
 
         _fundAndApprove(asset5, nav5, user1, 100e18);
 
@@ -161,7 +164,7 @@ contract FundNumericalTest is FundTestBase {
     ///      1e8 asset → 1e18 shares.
     ///      Formula: 1e8 * 1e18 * 1e18 / (1e18 * 1e8) = 1e18
     function test_NUM_6_decConvert_8_18_nav1e18() public {
-        (MockERC20 asset6,, CoboFundToken nav6,) = _deployCustomDecimals(8, 18, 1e18, 1e8, 1e18);
+        (MockERC20 asset6, , CoboFundToken nav6, ) = _deployCustomDecimals(8, 18, 1e18, 1e8, 1e18);
 
         _fundAndApprove(asset6, nav6, user1, 100e8);
 
@@ -174,7 +177,7 @@ contract FundNumericalTest is FundTestBase {
     ///      1e6 asset → 1e8 shares.
     ///      Formula: 1e6 * 1e8 * 1e18 / (1e18 * 1e6) = 1e8
     function test_NUM_7_decConvert_6_8_nav1e18() public {
-        (MockERC20 asset7,, CoboFundToken nav7,) = _deployCustomDecimals(6, 8, 1e18, 1e6, 1e8);
+        (MockERC20 asset7, , CoboFundToken nav7, ) = _deployCustomDecimals(6, 8, 1e18, 1e6, 1e8);
 
         _fundAndApprove(asset7, nav7, user1, 100e6);
 
@@ -211,7 +214,7 @@ contract FundNumericalTest is FundTestBase {
         uint256 reqId = _requestRedemption(user1, shares);
 
         // Check stored assetAmount
-        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
 
         // At NAV=1.0: round-trip should be exact
         assertLe(assetBack, assetAmount, "NUM-9: assetBack must not exceed original deposit");
@@ -229,7 +232,7 @@ contract FundNumericalTest is FundTestBase {
 
         // Request redemption of all shares at the same NAV
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
 
         // Round-trip: assetBack <= assetAmount, loss <= 1 min unit
         assertLe(assetBack, assetAmount, "NUM-10: assetBack must not exceed original deposit");
@@ -244,7 +247,7 @@ contract FundNumericalTest is FundTestBase {
 
         uint256 shares = _deposit(user1, assetAmount);
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
 
         assertLe(assetBack, assetAmount, "NUM-11: assetBack must not exceed original");
         assertGe(assetBack + 1, assetAmount, "NUM-11: precision loss should be <= 1 min unit");
@@ -257,7 +260,7 @@ contract FundNumericalTest is FundTestBase {
         uint256 shares = _deposit(user1, assetAmount);
 
         uint256 reqId = _requestRedemption(user1, shares);
-        (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+        (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
 
         assertLe(assetBack, assetAmount, "NUM-12: assetBack must not exceed original");
         assertGe(assetBack + 1, assetAmount, "NUM-12: precision loss should be <= 1 min unit");
@@ -308,7 +311,7 @@ contract FundNumericalTest is FundTestBase {
         uint256 sharePerRedeem = totalShares / 10;
         for (uint256 i = 0; i < 9; i++) {
             uint256 reqId = _requestRedemption(user1, sharePerRedeem);
-            (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+            (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
             totalRedeemed += assetBack;
         }
 
@@ -316,7 +319,7 @@ contract FundNumericalTest is FundTestBase {
         uint256 remaining = fundToken.balanceOf(user1);
         if (remaining >= MIN_REDEEM_SHARES) {
             uint256 reqId = _requestRedemption(user1, remaining);
-            (,, uint256 assetBack,,,) = fundToken.redemptions(reqId);
+            (, , uint256 assetBack, , , ) = fundToken.redemptions(reqId);
             totalRedeemed += assetBack;
         }
 
@@ -354,7 +357,7 @@ contract FundNumericalTest is FundTestBase {
     /// @dev NUM-16: extremely high NAV (1e30). No overflow.
     ///      shares = assetAmount * 1e12 * 1e18 / 1e30 = assetAmount * 1e0
     function test_NUM_16_extremelyHighNAV() public {
-        (MockERC20 asset16,, CoboFundToken nav16,) = _deployCustomDecimals(6, 18, 1e30, 1e6, 1);
+        (MockERC20 asset16, , CoboFundToken nav16, ) = _deployCustomDecimals(6, 18, 1e30, 1e6, 1);
 
         _fundAndApprove(asset16, nav16, user1, 1000e6);
 
@@ -446,8 +449,10 @@ contract FundNumericalTest is FundTestBase {
     function test_NUM_19_apr0_noGrowth() public {
         // Deploy oracle with APR=0
         CoboFundOracle oImpl = new CoboFundOracle();
-        bytes memory oInit =
-            abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL));
+        bytes memory oInit = abi.encodeCall(
+            CoboFundOracle.initialize,
+            (admin, 1e18, 0, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+        );
         CoboFundOracle zeroAprOracle = CoboFundOracle(address(new ERC1967Proxy(address(oImpl), oInit)));
 
         // Warp various durations
@@ -465,8 +470,10 @@ contract FundNumericalTest is FundTestBase {
     function test_NUM_20_maxAPR_1year() public {
         // Deploy oracle with APR=1e18 (100%)
         CoboFundOracle oImpl = new CoboFundOracle();
-        bytes memory oInit =
-            abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e18, 1e18, 1e18, MIN_UPDATE_INTERVAL));
+        bytes memory oInit = abi.encodeCall(
+            CoboFundOracle.initialize,
+            (admin, 1e18, 1e18, 1e18, 1e18, MIN_UPDATE_INTERVAL)
+        );
         CoboFundOracle maxAprOracle = CoboFundOracle(address(new ERC1967Proxy(address(oImpl), oInit)));
 
         // Warp exactly 1 year
@@ -481,8 +488,10 @@ contract FundNumericalTest is FundTestBase {
     function test_NUM_21_aprDropsToZero() public {
         // Deploy oracle with APR=1e18 (100%), allow large delta
         CoboFundOracle oImpl = new CoboFundOracle();
-        bytes memory oInit =
-            abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e18, 1e18, 1e18, MIN_UPDATE_INTERVAL));
+        bytes memory oInit = abi.encodeCall(
+            CoboFundOracle.initialize,
+            (admin, 1e18, 1e18, 1e18, 1e18, MIN_UPDATE_INTERVAL)
+        );
         CoboFundOracle dropOracle = CoboFundOracle(address(new ERC1967Proxy(address(oImpl), oInit)));
 
         // Grant updater role

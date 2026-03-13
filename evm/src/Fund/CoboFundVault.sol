@@ -2,9 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -20,11 +18,11 @@ interface ICoboFundToken {
     function paused() external view returns (bool);
 }
 
-/// @title CoboFundVault - Asset custody vault for ASSET.
+/// @title CoboFundVault - Asset custody vault for tokenized funds.
 /// @author Cobo Safe Dev Team https://www.cobo.com/
-/// @notice Holds all ASSET deposits and supports controlled withdrawals to whitelisted addresses.
+/// @notice Holds all underlying asset token deposits and supports controlled withdrawals to whitelisted addresses.
 /// @dev Reads FundToken's pause state for coordinated pause — does NOT inherit PausableUpgradeable.
-///      Pre-approves FundToken for max ASSET so FundToken can transferFrom for redemption payouts.
+///      Pre-approves FundToken for max asset tokens so FundToken can transferFrom for redemption payouts.
 contract CoboFundVault is
     Initializable,
     AccessControlEnumerableUpgradeable,
@@ -47,7 +45,7 @@ contract CoboFundVault is
 
     // ─── State Variables ────────────────────────────────────────────────
 
-    /// @notice The asset token (ASSET).
+    /// @notice The underlying asset token.
     IERC20 public asset;
 
     /// @notice The FundToken contract (read paused state for coordinated pause).
@@ -75,7 +73,7 @@ contract CoboFundVault is
     /// @notice Initialize the vault with asset token, FundToken reference, and admin.
     /// @dev Automatically approves FundToken with max uint256 for asset token,
     ///      so FundToken can transferFrom to pay redemptions.
-    /// @param asset_ Address of the asset token (ASSET).
+    /// @param asset_ Address of the underlying asset token.
     /// @param fundToken_ Address of the FundToken contract.
     /// @param admin Address to receive DEFAULT_ADMIN_ROLE.
     function initialize(address asset_, address fundToken_, address admin) external initializer {
@@ -144,8 +142,9 @@ contract CoboFundVault is
     /// @dev Prevents revoking the last DEFAULT_ADMIN_ROLE holder.
     function revokeRole(bytes32 role, address account) public override(AccessControlUpgradeable, IAccessControl) {
         if (
-            role == DEFAULT_ADMIN_ROLE && hasRole(DEFAULT_ADMIN_ROLE, account)
-                && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
+            role == DEFAULT_ADMIN_ROLE &&
+            hasRole(DEFAULT_ADMIN_ROLE, account) &&
+            getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1
         ) {
             revert LibFundErrors.LastAdminCannotBeRevoked();
         }
@@ -162,7 +161,7 @@ contract CoboFundVault is
 
     // ─── Asset Rescue ───────────────────────────────────────────────────
 
-    /// @notice Rescue accidentally sent ERC20 tokens (cannot rescue ASSET).
+    /// @notice Rescue accidentally sent ERC20 tokens (cannot rescue underlying asset tokens).
     function rescueERC20(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert LibFundErrors.ZeroAddress();
         if (token == address(asset)) revert LibFundErrors.CannotRescueCoreAsset(token);

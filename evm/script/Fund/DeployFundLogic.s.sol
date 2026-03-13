@@ -9,10 +9,12 @@ import {CoboFundVault} from "../src/Fund/CoboFundVault.sol";
 interface IFactory {
     function deploy(uint8 typ, bytes32 salt, bytes memory initCode) external returns (address);
 
-    function getAddress(uint8 typ, bytes32 salt, address sender, bytes calldata initCode)
-        external
-        view
-        returns (address);
+    function getAddress(
+        uint8 typ,
+        bytes32 salt,
+        address sender,
+        bytes calldata initCode
+    ) external view returns (address);
 }
 
 library FactoryLib {
@@ -32,12 +34,16 @@ contract DeployFundLogic is Script {
         vm.startBroadcast();
         IFactory factory = IFactory(FACTORY);
 
-        address oracleLogic =
-            factory.doDeploy(uint256(bytes32("CoboFundOracleLogic")), type(CoboFundOracle).creationCode);
+        address oracleLogic = factory.doDeploy(
+            uint256(bytes32("CoboFundOracleLogic")),
+            type(CoboFundOracle).creationCode
+        );
         console.log("CoboFundOracle logic:", oracleLogic);
 
-        address nav4626Logic =
-            factory.doDeploy(uint256(bytes32("CoboFundTokenLogic")), type(CoboFundToken).creationCode);
+        address nav4626Logic = factory.doDeploy(
+            uint256(bytes32("CoboFundTokenLogic")),
+            type(CoboFundToken).creationCode
+        );
         console.log("CoboFundToken logic:", nav4626Logic);
 
         address vaultLogic = factory.doDeploy(uint256(bytes32("CoboFundVaultLogic")), type(CoboFundVault).creationCode);
