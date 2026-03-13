@@ -13,7 +13,6 @@ library LibFundErrors {
     error APRExceedsMax(uint256 apr, uint256 maxAPR);
     error APRDeltaExceedsMax(uint256 delta, uint256 maxAprDelta);
     error UpdateTooFrequent(uint256 elapsed, uint256 minInterval);
-    error IntervalTooLarge(uint256 interval, uint256 maxInterval);
 
     // ──────────────────── FundToken ───────────────────
     error NotWhitelisted(address account);
@@ -21,7 +20,9 @@ library LibFundErrors {
     error BelowMinRedeem(uint256 shares, uint256 minRedeem);
     error ZeroShares();
     error ZeroAssetAmount();
-    error InsufficientBalance(address user, uint256 requested, uint256 available);
+    error OraclePriceDecrease(uint256 oldPrice, uint256 newPrice);
+    error InsufficientVaultBalance(uint256 available, uint256 required);
+    error InsufficientVaultAllowance(uint256 available, uint256 required);
     error InvalidRedemptionRequest(uint256 reqId);
     error RedemptionNotPending(uint256 reqId);
     error RedemptionParamMismatch(uint256 reqId);

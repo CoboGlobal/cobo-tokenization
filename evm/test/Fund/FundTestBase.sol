@@ -45,8 +45,8 @@ abstract contract FundTestBase is Test {
     uint256 public constant MAX_APR = 1e17; // 10%
     uint256 public constant MAX_APR_DELTA = 5e16; // 5%
     uint256 public constant MIN_UPDATE_INTERVAL = 1 days;
-    uint256 public constant MIN_DEPOSIT_AMOUNT = 1e6; // 1 ASSET
-    uint256 public constant MIN_REDEEM_SHARES = 1e18; // 1 SHARE
+    uint256 public constant MIN_DEPOSIT_AMOUNT = 1e6; // 1 unit of asset token
+    uint256 public constant MIN_REDEEM_SHARES = 1e18; // 1 share token
     uint8 public constant ASSET_DECIMALS = 6;
     uint8 public constant SHARE_DECIMALS = 18;
 
@@ -60,8 +60,8 @@ abstract contract FundTestBase is Test {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     function setUp() public virtual {
-        // Deploy mock ASSET
-        asset = new MockERC20("Tether Gold", "ASSET", ASSET_DECIMALS);
+        // Deploy mock asset token
+        asset = new MockERC20("Mock Asset Token", "ASSET", ASSET_DECIMALS);
 
         // Deploy logic implementations
         oracleImpl = new CoboFundOracle();
@@ -70,7 +70,8 @@ abstract contract FundTestBase is Test {
 
         // Deploy Oracle proxy
         bytes memory oracleInit = abi.encodeCall(
-            CoboFundOracle.initialize, (admin, INITIAL_NAV, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
+            CoboFundOracle.initialize,
+            (admin, INITIAL_NAV, DEFAULT_APR, MAX_APR, MAX_APR_DELTA, MIN_UPDATE_INTERVAL)
         );
         oracle = CoboFundOracle(address(new ERC1967Proxy(address(oracleImpl), oracleInit)));
 
@@ -104,7 +105,7 @@ abstract contract FundTestBase is Test {
         bytes memory fundTokenInit = abi.encodeCall(
             CoboFundToken.initialize,
             (
-                "SHARE Gold Fund",
+                "Example Fund Token",
                 "SHARE",
                 SHARE_DECIMALS,
                 address(asset),
@@ -154,11 +155,11 @@ abstract contract FundTestBase is Test {
         vm.stopPrank();
 
         // ─── Fund users ──────────────────────────────────
-        asset.mint(user1, 1000e6); // 1000 ASSET
+        asset.mint(user1, 1000e6); // 1000 units
         asset.mint(user2, 1000e6);
         asset.mint(user3, 1000e6);
 
-        // Users approve Nav4626 to spend their ASSET
+        // Users approve FundToken to spend their asset tokens
         vm.prank(user1);
         asset.approve(address(fundToken), type(uint256).max);
         vm.prank(user2);

@@ -45,9 +45,9 @@ A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, b
 
 | Contract         | Address                                                               |
 |------------------|-----------------------------------------------------------------------|
-| Oracle Logic     | [`0x5c167dfA84b7e64E7c0c293525744EbEF3ed14Aa`](https://sepolia.etherscan.io/address/0x5c167dfA84b7e64E7c0c293525744EbEF3ed14Aa) |
-| FundToken Logic  | [`0x8b11488b328722406564Af5cde1AD2907224F6AF`](https://sepolia.etherscan.io/address/0x8b11488b328722406564Af5cde1AD2907224F6AF) |
-| Vault Logic      | [`0x35c47B02f291cdEdC9C96CD609d77953f1642D46`](https://sepolia.etherscan.io/address/0x35c47B02f291cdEdC9C96CD609d77953f1642D46) |
+| Oracle Logic     | [`0x0CEc310611866849fe07759f3635EB8D39BbA8ea`](https://sepolia.etherscan.io/address/0x0CEc310611866849fe07759f3635EB8D39BbA8ea) |
+| FundToken Logic  | [`0xc12746bD6DC4dA88944f366f55D63960edaB83CB`](https://sepolia.etherscan.io/address/0xc12746bD6DC4dA88944f366f55D63960edaB83CB) |
+| Vault Logic      | [`0x60263ba36aFD3824cE3E8231d5439E542b48C617`](https://sepolia.etherscan.io/address/0x60263ba36aFD3824cE3E8231d5439E542b48C617) |
 
 📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for deployment and usage.
 

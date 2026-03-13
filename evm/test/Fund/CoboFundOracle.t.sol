@@ -29,7 +29,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle impl = new CoboFundOracle();
         vm.expectRevert(LibFundErrors.ZeroAddress.selector);
         new ERC1967Proxy(
-            address(impl), abi.encodeCall(CoboFundOracle.initialize, (address(0), 1e18, 5e16, 1e17, 5e16, 1 days))
+            address(impl),
+            abi.encodeCall(CoboFundOracle.initialize, (address(0), 1e18, 5e16, 1e17, 5e16, 1 days))
         );
     }
 
@@ -37,7 +38,10 @@ contract CoboFundOracleTest is FundTestBase {
     function test_initialize_revert_zeroNetValue() public {
         CoboFundOracle impl = new CoboFundOracle();
         vm.expectRevert(LibFundErrors.ZeroNetValue.selector);
-        new ERC1967Proxy(address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 0, 5e16, 1e17, 5e16, 1 days)));
+        new ERC1967Proxy(
+            address(impl),
+            abi.encodeCall(CoboFundOracle.initialize, (admin, 0, 5e16, 1e17, 5e16, 1 days))
+        );
     }
 
     // O-INIT-5: APR exceeds max reverts
@@ -45,7 +49,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle impl = new CoboFundOracle();
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.APRExceedsMax.selector, 2e17, 1e17));
         new ERC1967Proxy(
-            address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 2e17, 1e17, 5e16, 1 days))
+            address(impl),
+            abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 2e17, 1e17, 5e16, 1 days))
         );
     }
 
@@ -55,7 +60,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -68,7 +74,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e17, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e17, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -95,8 +102,9 @@ contract CoboFundOracleTest is FundTestBase {
         vm.warp(block.timestamp + 1 days);
         // 1e18 + 1e18 * 5e16 * 86400 / (365 days * 1e18) = 1e18 + 5e16 * 86400 / 31536000
         // = 1e18 + 136986301369863 = 1000136986301369863
-        uint256 expected = 1e18 + (uint256(1e18) * uint256(5e16) * uint256(1 days))
-            / (uint256(365 days) * uint256(1e18));
+        uint256 expected = 1e18 +
+            (uint256(1e18) * uint256(5e16) * uint256(1 days)) /
+            (uint256(365 days) * uint256(1e18));
         assertEq(oracle.getLatestPrice(), expected);
     }
 
@@ -107,7 +115,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -121,7 +130,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1000e18, 5e16, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1000e18, 5e16, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -143,7 +153,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e18, 1e18, 1e18, 0))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 1e18, 1e18, 1e18, 0))
                 )
             )
         );
@@ -299,14 +310,6 @@ contract CoboFundOracleTest is FundTestBase {
         assertEq(oracle.maxAPR(), 5e16);
     }
 
-    // Security fix: setMinUpdateInterval capped at 90 days
-    function test_setMinUpdateInterval_revert_tooLarge() public {
-        vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.IntervalTooLarge.selector, 91 days, 90 days));
-        oracle.setMinUpdateInterval(91 days);
-    }
-
-    // Security fix: setMinUpdateInterval at exactly 90 days succeeds
     function test_setMinUpdateInterval_boundary90days() public {
         vm.prank(admin);
         oracle.setMinUpdateInterval(90 days);
@@ -412,7 +415,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 0, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 0, 5e16, 1 days))
                 )
             )
         );
@@ -438,7 +442,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 5e16, 1e17, 0, 0))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 5e16, 1e17, 0, 0))
                 )
             )
         );
@@ -463,7 +468,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 5e16, 1e17, 5e16, 0))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 5e16, 1e17, 5e16, 0))
                 )
             )
         );
@@ -487,7 +493,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1000e18, 5e16, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1000e18, 5e16, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -561,7 +568,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e30, 1e18, 1e18, 1e18, 0))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e30, 1e18, 1e18, 1e18, 0))
                 )
             )
         );
@@ -578,7 +586,8 @@ contract CoboFundOracleTest is FundTestBase {
         CoboFundOracle o = CoboFundOracle(
             address(
                 new ERC1967Proxy(
-                    address(impl), abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
+                    address(impl),
+                    abi.encodeCall(CoboFundOracle.initialize, (admin, 1e18, 0, 1e17, 5e16, 1 days))
                 )
             )
         );
@@ -670,8 +679,8 @@ contract CoboFundOracleTest is FundTestBase {
     // O-UPD-17: metadata long string → success
     function test_O_UPD_17_metadataLong() public {
         vm.warp(block.timestamp + 1 days);
-        string memory longMeta =
-            "This is a very long metadata string that contains various information about the NAV update, including timestamps, source references, IPFS hashes, and other arbitrary data that might be useful for off-chain tracking and auditing purposes. It should still succeed regardless of length.";
+        string
+            memory longMeta = "This is a very long metadata string that contains various information about the NAV update, including timestamps, source references, IPFS hashes, and other arbitrary data that might be useful for off-chain tracking and auditing purposes. It should still succeed regardless of length.";
         vm.prank(navUpdater);
         oracle.updateRate(5e16, longMeta);
         assertEq(oracle.currentAPR(), 5e16);
