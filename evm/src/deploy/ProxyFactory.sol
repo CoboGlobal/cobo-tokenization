@@ -49,7 +49,7 @@ contract ProxyFactory {
         IFactory factory = IFactory(0xC0B000003148E9c3E0D314f3dB327Ef03ADF8Ba7);
         
         uint256 finalSalt = uint256(keccak256(abi.encode(msg.sender, salt)));
-        // TODO: add init code
+        // add init code
         address proxy = factory.doDeploy(
             finalSalt,
             abi.encodePacked(
@@ -58,9 +58,9 @@ contract ProxyFactory {
             )
         );
         CoboERC20 coboERC20Proxy = CoboERC20(proxy);
-        // TODO: initialize
+        // initialize
         coboERC20Proxy.initialize(name, symbol, uri, decimal, _this);
-        // TODO: add admin, manager, minter, burner, pauser, salvager, upgrader
+        // setup roles
         for (uint256 i = 0; i < admins.length; i++) {
             // check if admin is empty
             if (admins[i] == address(0)) revert InvalidAddress();
