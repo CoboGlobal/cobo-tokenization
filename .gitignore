@@ -1,0 +1,10 @@
+# Forge build artifacts
+evm/out/
+evm/cache/
+
+# Dependencies (managed via forge install)
+evm/lib/
+
+# Coverage reports
+evm/lcov.info
+evm/coverage/

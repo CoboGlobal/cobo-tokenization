@@ -67,21 +67,27 @@ contract ProxyFactory {
             coboERC20Proxy.grantRole(coboERC20Proxy.DEFAULT_ADMIN_ROLE(), admins[i]);
         }
         for (uint256 i = 0; i < managers.length; i++) {
+            if (managers[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.MANAGER_ROLE(), managers[i]);
         }
         for (uint256 i = 0; i < minters.length; i++) {
+            if (minters[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.MINTER_ROLE(), minters[i]);
         }
         for (uint256 i = 0; i < burners.length; i++) {
+            if (burners[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.BURNER_ROLE(), burners[i]);
         }
         for (uint256 i = 0; i < pausers.length; i++) {
+            if (pausers[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.PAUSER_ROLE(), pausers[i]);
         }
         for (uint256 i = 0; i < salvagers.length; i++) {
+            if (salvagers[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.SALVAGER_ROLE(), salvagers[i]);
         }
         for (uint256 i = 0; i < upgraders.length; i++) {
+            if (upgraders[i] == address(0)) revert InvalidAddress();
             coboERC20Proxy.grantRole(coboERC20Proxy.UPGRADER_ROLE(), upgraders[i]);
         }
         coboERC20Proxy.renounceRole(coboERC20Proxy.DEFAULT_ADMIN_ROLE(), _this);
