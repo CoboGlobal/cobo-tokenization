@@ -41,13 +41,19 @@ A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, b
 - **Asset Vault**: Secure custody with settlement operations
 - **Compliance**: Built-in whitelist and two-step redemption approval
 
-### Logic Contracts (Sepolia Testnet)
+### Logic Contracts
 
-| Contract         | Address                                                               |
+| Sepolia Testnet Contract         | Address                                                               |
 |------------------|-----------------------------------------------------------------------|
 | Oracle Logic     | [`0x0CEc310611866849fe07759f3635EB8D39BbA8ea`](https://sepolia.etherscan.io/address/0x0CEc310611866849fe07759f3635EB8D39BbA8ea) |
 | FundToken Logic  | [`0xc12746bD6DC4dA88944f366f55D63960edaB83CB`](https://sepolia.etherscan.io/address/0xc12746bD6DC4dA88944f366f55D63960edaB83CB) |
 | Vault Logic      | [`0x60263ba36aFD3824cE3E8231d5439E542b48C617`](https://sepolia.etherscan.io/address/0x60263ba36aFD3824cE3E8231d5439E542b48C617) |
+
+| Ethereum Contract         | Address                                                               |
+|------------------|-----------------------------------------------------------------------|
+| Oracle Logic     | [`0xde7d4d8cac1a8CB6a70B3232517fD0EC3F950cDf`](https://etherscan.io/address/0xde7d4d8cac1a8cb6a70b3232517fd0ec3f950cdf) |
+| FundToken Logic  | [`0x4aFE8E60a56B6d1127E87a990EEA10fc62C40774`](https://etherscan.io/address/0x4afe8e60a56b6d1127e87a990eea10fc62c40774) |
+| Vault Logic      | [`0x62c4B4A85F7e689e85BDcfC1426f3853eBB7c288`](https://etherscan.io/address/0x62c4b4a85f7e689e85bdcfc1426f3853ebb7c288) |
 
 📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for deployment and usage.
 
