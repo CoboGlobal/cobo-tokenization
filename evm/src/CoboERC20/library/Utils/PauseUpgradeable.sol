@@ -29,7 +29,8 @@ abstract contract PauseUpgradeable is Initializable, PausableUpgradeable {
 	 *
 	 * @dev Calling Conditions:
 	 *
-	 * - The caller must hold the "MANAGER_ROLE" role.
+	 * - Authorization is delegated to {_authorizePause}; the specific role is determined by
+	 *   the subcontract implementation.
 	 *
 	 * This function emits a {Paused} event as part of {PausableUpgradeable._pause}.
 	 */
@@ -43,7 +44,8 @@ abstract contract PauseUpgradeable is Initializable, PausableUpgradeable {
 	 *
 	 * @dev Calling Conditions:
 	 *
-	 * - The caller must hold the "MANAGER_ROLE" role.
+	 * - Authorization is delegated to {_authorizeUnpause}; the specific role is determined by
+	 *   the subcontract implementation.
 	 *
 	 * This function emits an {Unpaused} event as part of {PausableUpgradeable._unpause}.
 	 */
