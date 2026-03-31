@@ -98,7 +98,7 @@ contract CoboFundToken is
     /// @dev Scale factor: 10^shareDecimals.
     uint256 private _shareScale;
 
-    /// @notice User whitelist — only whitelisted users can mint/redeem/transfer.
+    /// @notice User whitelist — only whitelisted users can mint and redeem.
     mapping(address => bool) public whitelist;
 
     /// @notice Redemption requests.
@@ -210,17 +210,9 @@ contract CoboFundToken is
         return _decimals;
     }
 
-    /// @dev Unified transfer hook — enforces whitelist and pause checks.
+    /// @dev Unified transfer hook — enforces pause check.
     ///      All standard ERC20 operations (mint, burn, transfer) pass through here.
     function _update(address from, address to, uint256 amount) internal override whenNotPaused {
-        // Check sender (non-mint operations)
-        if (from != address(0)) {
-            if (!whitelist[from]) revert LibFundErrors.NotWhitelisted(from);
-        }
-        // Check receiver (non-burn operations)
-        if (to != address(0)) {
-            if (!whitelist[to]) revert LibFundErrors.NotWhitelisted(to);
-        }
         super._update(from, to, amount);
     }
 
@@ -248,15 +240,15 @@ contract CoboFundToken is
 
     // ─── Bypass Functions ───────────────────────────────────────────────
 
-    /// @dev Bypass mint — skips whitelist checks, respects pause.
-    ///      Used by rejectRedemption to return shares even if user was removed from whitelist.
+    /// @dev Bypass mint — skips pause check.
+    ///      Reserved for future use if pause-exempt minting is needed.
     ///      Calls ERC20Upgradeable._update directly, bypassing our _update override.
     function _mintBypass(address to, uint256 amount) internal whenNotPaused {
         super._update(address(0), to, amount);
     }
 
-    /// @dev Bypass burn — skips ALL checks including pause.
-    ///      Used by forceRedeem for compliance enforcement (system may be paused, user may not be whitelisted).
+    /// @dev Bypass burn — skips pause check.
+    ///      Used by forceRedeem for compliance enforcement when system may be paused.
     ///      Calls ERC20Upgradeable._update directly, bypassing our _update override.
     function _burnBypass(address from, uint256 amount) internal {
         super._update(from, address(0), amount);
@@ -280,7 +272,7 @@ contract CoboFundToken is
         // Transfer asset from user to Vault
         asset.safeTransferFrom(msg.sender, vault, assetAmount);
 
-        // Mint shares to user (goes through _update with whitelist/pause checks)
+        // Mint shares to user (goes through _update with pause check)
         _mint(msg.sender, shareAmount);
     }
 
@@ -356,7 +348,7 @@ contract CoboFundToken is
     // ─── Redemption Rejection ───────────────────────────────────────────
 
     /// @notice Reject a pending redemption. Mints back shares to user.
-    /// @dev Uses _mintBypass to return shares even if user was removed from whitelist.
+    /// @dev Uses _mintBypass to return shares to user.
     ///      This allows admin to: reject (return shares) → forceRedeem (clear all shares).
     ///      Implicitly pause-guarded: _mintBypass enforces whenNotPaused.
     /// @param reqId Redemption request ID.
@@ -380,7 +372,7 @@ contract CoboFundToken is
         req.status = RedemptionStatus.Rejected;
         totalPendingAssets -= assetAmount;
 
-        // Mint back shares (bypass whitelist — user may have been removed)
+        // Mint back shares to user
         _mintBypass(user, shareAmount);
 
         emit RedemptionRejected(reqId, user, assetAmount, shareAmount, block.timestamp, msg.sender);
@@ -389,7 +381,7 @@ contract CoboFundToken is
     // ─── Compliance: Force Redeem ───────────────────────────────────────
 
     /// @notice Force burn a user's shares. For regulatory compliance scenarios.
-    /// @dev Uses _burnBypass — works even if user is not whitelisted or system is paused.
+    /// @dev Uses _burnBypass — works even if system is paused.
     ///      If requested shares > balance, burns all available balance (auto-adjusts).
     ///      Pass type(uint256).max to clear user's entire balance.
     function forceRedeem(address user, uint256 shares) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
@@ -474,8 +466,8 @@ contract CoboFundToken is
 
     /// @notice Add a user to the whitelist (KYC approved).
     /// @dev Only MANAGER_ROLE can add users to the whitelist.
-    ///      Whitelisted users can mint shares, request redemptions, and transfer tokens.
-    ///      The whitelist check is enforced in the _update() hook for all token operations.
+    ///      Whitelisted users can mint shares and request redemptions.
+    ///      The whitelist check is enforced at business-logic entry points (mint, requestRedemption, approveRedemption).
     function addToWhitelist(address account) external onlyRole(MANAGER_ROLE) {
         if (account == address(0)) revert LibFundErrors.ZeroAddress();
         whitelist[account] = true;
@@ -485,8 +477,8 @@ contract CoboFundToken is
     /// @notice Remove a user from the whitelist (compliance enforcement).
     /// @dev Only MANAGER_ROLE can remove users from the whitelist.
     ///      Same role as addition allows immediate correction of mistakes.
-    ///      Removed users cannot mint, redeem, or transfer tokens.
-    ///      Their existing shares remain but are frozen until re-whitelisted.
+    ///      Removed users cannot mint or redeem.
+    ///      Their existing shares remain and can still be transferred.
     ///      Use forceRedeem() to clear a removed user's balance if required by compliance.
     function removeFromWhitelist(address account) external onlyRole(MANAGER_ROLE) {
         if (account == address(0)) revert LibFundErrors.ZeroAddress();
