@@ -210,17 +210,9 @@ contract CoboFundToken is
         return _decimals;
     }
 
-    /// @dev Unified transfer hook — enforces whitelist and pause checks.
+    /// @dev Unified transfer hook — enforces pause check.
     ///      All standard ERC20 operations (mint, burn, transfer) pass through here.
     function _update(address from, address to, uint256 amount) internal override whenNotPaused {
-        // Check sender (non-mint operations)
-        if (from != address(0)) {
-            if (!whitelist[from]) revert LibFundErrors.NotWhitelisted(from);
-        }
-        // Check receiver (non-burn operations)
-        if (to != address(0)) {
-            if (!whitelist[to]) revert LibFundErrors.NotWhitelisted(to);
-        }
         super._update(from, to, amount);
     }
 
