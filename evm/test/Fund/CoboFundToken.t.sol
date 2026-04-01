@@ -78,8 +78,8 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.mint(10e6);
     }
 
-    // F-MINT-4: Frozen user reverts
-    function test_mint_revert_frozen() public {
+    // F-MINT-4: Removed-whitelist user cannot mint
+    function test_mint_revert_removedUser() public {
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
@@ -268,8 +268,8 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(uint8(status), uint8(CoboFundToken.RedemptionStatus.Rejected));
     }
 
-    // F-REJECT-2: Reject after user removed from whitelist (bypass test)
-    function test_rejectRedemption_bypassWhitelist() public {
+    // F-REJECT-2: rejectRedemption succeeds after user removed from whitelist
+    function test_rejectRedemption_removedWhitelistUser() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
         (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
@@ -392,10 +392,10 @@ contract CoboFundTokenTest is FundTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 2.8 ERC20 transfer with whitelist/freeze
+    // 2.8 ERC20 transfer
     // ═══════════════════════════════════════════════════════════════════
 
-    // F-TRANSFER-1: Transfer between whitelisted users
+    // F-TRANSFER-1: Transfer succeeds
     function test_transfer_normal() public {
         _deposit(user1, 10e6);
 
@@ -405,25 +405,27 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user2), 3e18);
     }
 
-    // F-TRANSFER-2: Transfer to non-whitelisted reverts
-    function test_transfer_revert_receiverNotWhitelisted() public {
+    // F-TRANSFER-2: Transfer to non-whitelisted user succeeds
+    function test_transfer_toNonWhitelisted() public {
         _deposit(user1, 10e6);
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, attacker));
         fundToken.transfer(attacker, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(attacker), 3e18);
     }
 
-    // F-TRANSFER-3: Transfer from frozen sender reverts
-    function test_transfer_revert_senderFrozen() public {
+    // F-TRANSFER-3: Transfer from removed-whitelist user succeeds
+    function test_transfer_fromRemovedUser() public {
         _deposit(user1, 10e6);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transfer(user2, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(user2), 3e18);
     }
 
     // F-TRANSFER-4: Transfer when paused reverts
@@ -765,22 +767,17 @@ contract CoboFundTokenTest is FundTestBase {
         _deposit(user1, 10e6);
     }
 
-    /// @dev N-MNT-8: not whitelisted + frozen → revert "not whitelisted" (checked first)
-    function test_N_MNT_8_notWhitelisted_and_frozen() public {
+    /// @dev N-MNT-8: removed from whitelist → revert "not whitelisted"
+    function test_N_MNT_8_removedWhitelist() public {
         asset.mint(attacker, 100e6);
         vm.prank(attacker);
         asset.approve(address(fundToken), type(uint256).max);
 
-        // attacker is not whitelisted. Also freeze them.
         vm.prank(manager);
         fundToken.addToWhitelist(attacker);
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(attacker);
-        // Now remove from whitelist
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(attacker);
 
-        // mint should revert with "not whitelisted" first
         vm.prank(attacker);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, attacker));
         fundToken.mint(10e6);
@@ -1435,31 +1432,12 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 10e18);
     }
 
-    /// @dev N-REJ-C3: whitelisted + frozen → success (bypass frozen)
-    function test_N_REJ_C3_whitelisted_frozen() public {
+    /// @dev N-REJ-C3: removed from whitelist → rejectRedemption succeeds (_mintBypass ignores whitelist check)
+    function test_N_REJ_C3_removedWhitelist() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
         (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
 
-        // Freeze user
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(user1);
-
-        vm.prank(redemptionApprover);
-        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
-
-        assertEq(fundToken.balanceOf(user1), 10e18);
-    }
-
-    /// @dev N-REJ-C4: removed + frozen → success (bypass both)
-    function test_N_REJ_C4_removed_frozen() public {
-        _deposit(user1, 10e6);
-        uint256 reqId = _requestRedemption(user1, 5e18);
-        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
-
-        // Remove + freeze
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(user1);
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
@@ -1483,26 +1461,8 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
     }
 
-    /// @dev N-REJ-C6: removed + frozen + paused → revert "paused"
-    function test_N_REJ_C6_removed_frozen_paused() public {
-        _deposit(user1, 10e6);
-        uint256 reqId = _requestRedemption(user1, 5e18);
-        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
-
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(user1);
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(user1);
-        vm.prank(admin);
-        fundToken.pause();
-
-        vm.prank(redemptionApprover);
-        vm.expectRevert();
-        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
-    }
-
-    /// @dev N-REJ-C7: removed + not frozen + paused → revert "paused"
-    function test_N_REJ_C7_removed_paused() public {
+    /// @dev N-REJ-C6: removed from whitelist + paused → revert "paused"
+    function test_N_REJ_C6_removedWhitelist_paused() public {
         _deposit(user1, 10e6);
         uint256 reqId = _requestRedemption(user1, 5e18);
         (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
@@ -1517,21 +1477,6 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
     }
 
-    /// @dev N-REJ-C8: whitelisted + frozen + paused → revert "paused"
-    function test_N_REJ_C8_whitelisted_frozen_paused() public {
-        _deposit(user1, 10e6);
-        uint256 reqId = _requestRedemption(user1, 5e18);
-        (, , uint256 assetAmt, uint256 shareAmt, , ) = fundToken.redemptions(reqId);
-
-        vm.prank(blocklistAdmin);
-        fundToken.removeFromWhitelist(user1);
-        vm.prank(admin);
-        fundToken.pause();
-
-        vm.prank(redemptionApprover);
-        vm.expectRevert();
-        fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
-    }
 
     // ═══════════════════════════════════════════════════════════════════
     // 2.6 forceRedeem — additional cases
@@ -1640,32 +1585,33 @@ contract CoboFundTokenTest is FundTestBase {
     // 2.7 ERC20 — additional transfer/transferFrom/approve cases
     // ═══════════════════════════════════════════════════════════════════
 
-    /// @dev N-TF-4: sender whitelisted, receiver NOT whitelisted → revert "receiver not whitelisted"
+    /// @dev N-TF-4: receiver not whitelisted → transfer succeeds
     function test_N_TF_4_receiverNotWhitelisted() public {
         _deposit(user1, 10e6);
 
-        // user4 is not whitelisted
         address user4 = makeAddr("user4");
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user4));
         fundToken.transfer(user4, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(user4), 3e18);
     }
 
-    /// @dev N-TF-5: receiver frozen → revert "receiver frozen"
-    function test_N_TF_5_receiverFrozen() public {
+    /// @dev N-TF-5: receiver removed from whitelist → transfer succeeds
+    function test_N_TF_5_receiverRemovedWhitelist() public {
         _deposit(user1, 10e6);
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user2);
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user2));
         fundToken.transfer(user2, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(user2), 3e18);
     }
 
-    /// @dev N-TF-7: sender frozen + receiver not whitelisted → revert "sender frozen" (frozen checked first)
-    function test_N_TF_7_senderFrozen_receiverNotWL() public {
+    /// @dev N-TF-7: sender removed from whitelist, receiver not whitelisted → transfer succeeds
+    function test_N_TF_7_senderRemovedWhitelist_receiverNotWL() public {
         _deposit(user1, 10e6);
 
         vm.prank(blocklistAdmin);
@@ -1674,11 +1620,12 @@ contract CoboFundTokenTest is FundTestBase {
         address notWL = makeAddr("notWL");
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transfer(notWL, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(notWL), 3e18);
     }
 
-    /// @dev N-TF-8: paused + both bad → revert "paused" (whenNotPaused first)
+    /// @dev N-TF-8: paused → revert "paused" regardless of whitelist state
     function test_N_TF_8_paused_overrides_all() public {
         _deposit(user1, 10e6);
 
@@ -1720,6 +1667,25 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 10e18);
     }
 
+    /// @dev N-TF-12: non-whitelisted user who received tokens can re-transfer them out
+    ///      Validates that whitelist only gates mint/redeem, not token movement.
+    function test_N_TF_12_nonWhitelistedCanReTransfer() public {
+        address user4 = makeAddr("user4");
+        address user5 = makeAddr("user5");
+
+        // user1 (whitelisted) mints and sends to user4 (never whitelisted)
+        _deposit(user1, 10e6);
+        vm.prank(user1);
+        fundToken.transfer(user4, 5e18);
+        assertEq(fundToken.balanceOf(user4), 5e18);
+
+        // user4 (never whitelisted) re-transfers to user5 (also never whitelisted)
+        vm.prank(user4);
+        fundToken.transfer(user5, 3e18);
+        assertEq(fundToken.balanceOf(user4), 2e18);
+        assertEq(fundToken.balanceOf(user5), 3e18);
+    }
+
     /// @dev N-TFF-1: normal transferFrom with sufficient allowance
     function test_N_TFF_1_normal() public {
         _deposit(user1, 10e6);
@@ -1759,7 +1725,7 @@ contract CoboFundTokenTest is FundTestBase {
         assertEq(fundToken.allowance(user1, user2), type(uint256).max);
     }
 
-    /// @dev N-TFF-4: sender (from) not whitelisted → revert
+    /// @dev N-TFF-4: sender (from) not whitelisted → transferFrom succeeds
     function test_N_TFF_4_senderNotWhitelisted() public {
         _deposit(user1, 10e6);
 
@@ -1770,12 +1736,13 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.approve(user2, 10e18);
 
         vm.prank(user2);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transferFrom(user1, user2, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(user2), 3e18);
     }
 
-    /// @dev N-TFF-5: receiver frozen → revert
-    function test_N_TFF_5_receiverFrozen() public {
+    /// @dev N-TFF-5: receiver removed from whitelist → transferFrom succeeds
+    function test_N_TFF_5_receiverRemovedWhitelist() public {
         _deposit(user1, 10e6);
 
         vm.prank(blocklistAdmin);
@@ -1785,8 +1752,9 @@ contract CoboFundTokenTest is FundTestBase {
         fundToken.approve(user3, 10e18);
 
         vm.prank(user3);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user2));
         fundToken.transferFrom(user1, user2, 3e18);
+        assertEq(fundToken.balanceOf(user1), 7e18);
+        assertEq(fundToken.balanceOf(user2), 3e18);
     }
 
     /// @dev N-TFF-6: from=caller (self approve + transferFrom)
@@ -2003,8 +1971,8 @@ contract CoboFundTokenTest is FundTestBase {
         assertFalse(fundToken.whitelist(nonUser));
     }
 
-    /// @dev N-WL-6: removed user blocked from mint, requestRedemption, transfer
-    function test_N_WL_6_removedUserBlocked() public {
+    /// @dev N-WL-6: removed user cannot mint or requestRedemption; transfer is unrestricted
+    function test_N_WL_6_removedUserBehavior() public {
         _deposit(user1, 10e6);
 
         vm.prank(blocklistAdmin);
@@ -2020,16 +1988,16 @@ contract CoboFundTokenTest is FundTestBase {
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.requestRedemption(1e18);
 
-        // Cannot transfer (as sender)
+        // Can still transfer (whitelist not enforced on transfers)
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transfer(user2, 1e18);
+        assertEq(fundToken.balanceOf(user2), 1e18);
 
-        // Cannot receive transfer
+        // Can still receive transfer
         _deposit(user2, 10e6);
         vm.prank(user2);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transfer(user1, 1e18);
+        assertEq(fundToken.balanceOf(user1), 10e18); // 9e18 remaining + 1e18 received
     }
 
     /// @dev N-WL-7: setWhitelist(address(0)) reverts

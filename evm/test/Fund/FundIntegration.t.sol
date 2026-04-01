@@ -626,26 +626,26 @@ contract FundIntegrationTest is FundTestBase {
     // 4.5 INT-18: Freeze → verify blocked → forceRedeem
     // ═══════════════════════════════════════════════════════════════════
 
-    function test_INT18_freeze_blockedOps_thenForceRedeem() public {
+    function test_INT18_removedUser_blockedOps_thenForceRedeem() public {
         _deposit(user1, 100e6);
 
         // Remove from whitelist
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
-        // User cannot transfer
+        // User can still transfer (whitelist not enforced on transfers)
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.transfer(user2, 10e18);
+        assertEq(fundToken.balanceOf(user2), 10e18);
 
-        // User cannot redeem
+        // User cannot request redemption
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(LibFundErrors.NotWhitelisted.selector, user1));
         fundToken.requestRedemption(10e18);
 
-        // Owner forceRedeem bypasses freeze
+        // Owner forceRedeem works (90 remaining after transfer)
         vm.prank(admin);
-        fundToken.forceRedeem(user1, 100e18);
+        fundToken.forceRedeem(user1, 90e18);
         assertEq(fundToken.balanceOf(user1), 0, "All shares burned via forceRedeem");
     }
 
@@ -684,7 +684,7 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
-        // rejectRedemption uses _mintBypass which bypasses whitelist check
+        // rejectRedemption uses _mintBypass which bypasses pause check
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
@@ -728,7 +728,7 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
-        // rejectRedemption uses _mintBypass which bypasses whitelist check
+        // rejectRedemption uses _mintBypass which bypasses pause check
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
 
@@ -747,7 +747,7 @@ contract FundIntegrationTest is FundTestBase {
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
-        // forceRedeem uses _burnBypass — bypasses everything
+        // forceRedeem uses _burnBypass — bypasses pause check
         vm.prank(admin);
         fundToken.forceRedeem(user1, 100e18);
         assertEq(fundToken.balanceOf(user1), 0);
