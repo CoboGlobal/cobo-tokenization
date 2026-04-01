@@ -398,13 +398,13 @@ contract FundFuzzTest is FundTestBase {
         vm.prank(manager);
         fundToken.addToWhitelist(user1);
 
-        // Scenario B: user frozen — forceRedeem still works
+        // Scenario B: user removed from whitelist — forceRedeem still works
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
         vm.prank(admin);
         fundToken.forceRedeem(user1, shares / 4);
-        assertEq(fundToken.balanceOf(user1), shares - 2 * (shares / 4), "INV-6: forceRedeem after freeze");
+        assertEq(fundToken.balanceOf(user1), shares - 2 * (shares / 4), "INV-6: forceRedeem after whitelist removal");
 
         // Scenario C: system paused — forceRedeem still works
         vm.prank(admin);
@@ -416,7 +416,7 @@ contract FundFuzzTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 0, "INV-6: forceRedeem after pause");
     }
 
-    // ─── INV-7: _burnBypass unaffected by pause/whitelist/freeze ────────
+    // ─── INV-7: _burnBypass unaffected by pause/whitelist ────────────────
 
     /// @dev forceRedeem (which uses _burnBypass) works under all restrictive conditions.
     function test_INV_7_burnBypassUnrestricted() public {
@@ -424,7 +424,7 @@ contract FundFuzzTest is FundTestBase {
         _deposit(user1, 100e6);
         uint256 initialShares = fundToken.balanceOf(user1);
 
-        // Apply ALL restrictions: remove whitelist + freeze + pause
+        // Apply ALL restrictions: remove whitelist + pause
 
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
@@ -438,9 +438,9 @@ contract FundFuzzTest is FundTestBase {
         assertEq(fundToken.balanceOf(user1), 0, "INV-7: _burnBypass should ignore all restrictions");
     }
 
-    // ─── INV-8: _mintBypass unaffected by whitelist/freeze, respects pause ──
+    // ─── INV-8: _mintBypass unaffected by whitelist removal, respects pause ──
 
-    /// @dev rejectRedemption (which uses _mintBypass) works when user is de-whitelisted/frozen,
+    /// @dev rejectRedemption (which uses _mintBypass) works when user is de-whitelisted,
     ///      but reverts when the system is paused.
     function test_INV_8_mintBypassRespectsOnlyPause() public {
         // Deposit and request redemption
@@ -451,13 +451,13 @@ contract FundFuzzTest is FundTestBase {
         vm.prank(blocklistAdmin);
         fundToken.removeFromWhitelist(user1);
 
-        // rejectRedemption should still work (mintBypass ignores whitelist/freeze)
+        // rejectRedemption should still work (mintBypass ignores whitelist check)
         vm.prank(redemptionApprover);
         fundToken.rejectRedemption(reqId, user1, assetAmt, shareAmt);
-        assertEq(fundToken.balanceOf(user1), 100e18, "INV-8: _mintBypass should bypass whitelist/freeze");
+        assertEq(fundToken.balanceOf(user1), 100e18, "INV-8: _mintBypass should bypass whitelist check");
 
         // Now test pause: create a new redemption request
-        // Re-whitelist and unfreeze user1 so they can request redemption
+        // Re-whitelist user1 so they can request redemption
         vm.prank(manager);
         fundToken.addToWhitelist(user1);
 
