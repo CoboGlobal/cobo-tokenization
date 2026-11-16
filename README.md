@@ -1,13 +1,25 @@
-# Cobo Tokenization ERC20 
+# Cobo Tokenization
 
-A sophisticated, upgradeable ERC20 token implementation with role-based access control, built using the Foundry framework and OpenZeppelin's upgradeable contracts.
+Smart contracts for ERC20 tokens, wrapped assets, and NAV-based fund shares on EVM networks, with a Solana token wrapping program.
 
-## 🌟 Features
+| Module | Source and documentation |
+|--------|--------------------------|
+| EVM contracts | [Build configuration and module overview](evm/README.md) |
+| ERC20 and Wrapper | [Contracts, roles, and security model](evm/src/CoboERC20/README.md) |
+| Fund | [Oracle, share token, and custody vault](evm/src/Fund/README.md) |
+| Solana | [Token wrapping program](solana/programs/tokenization-wrap/src/lib.rs) |
 
-### Core Token Functionality
-- **ERC20 Standard**: Full compliance with ERC20 token standard
-- **Upgradeable**: UUPS (Universal Upgradeable Proxy Standard) implementation
-- **Multicall Support**: Batch multiple function calls in a single transaction
+The tables below list published contract addresses and block explorer links. EVM implementation addresses are not initialized product proxies; the current source tree may differ from a published implementation revision.
+
+## Cobo Tokenization ERC20
+
+An upgradeable ERC20 token with role-based access control, built with Foundry and OpenZeppelin Contracts.
+
+### Features
+
+- ERC20 token interface
+- UUPS upgrades controlled by authorized roles
+- Multicall support for batching contract calls
 
 ### Contracts
 
@@ -19,7 +31,7 @@ A sophisticated, upgradeable ERC20 token implementation with role-based access c
 | BSC Network      | [`0xA3d7b4Af8603B95A6fAaf0758Db4440871fC465c`](https://bscscan.com/address/0xA3d7b4Af8603B95A6fAaf0758Db4440871fC465c#code) |
 | Arbitrum One Network      | [`0xA3d7b4Af8603B95A6fAaf0758Db4440871fC465c`](https://arbiscan.io/address/0xA3d7b4Af8603B95A6fAaf0758Db4440871fC465c#code) |
 
-# Cobo Tokenization ERC20 Wrapper 
+## Cobo Tokenization ERC20 Wrapper
 
 ### Contracts
 
@@ -31,11 +43,11 @@ A sophisticated, upgradeable ERC20 token implementation with role-based access c
 | BSC Network      | [`0x162090E61445B8Ca6B7CbbFb494C77D167e2F32b`](https://bscscan.com/address/0x162090E61445B8Ca6B7CbbFb494C77D167e2F32b#code) |
 | Arbitrum One Network      | [`0x162090E61445B8Ca6B7CbbFb494C77D167e2F32b`](https://arbiscan.io/address/0x162090E61445B8Ca6B7CbbFb494C77D167e2F32b#code) |
 
-# Cobo Fund Tokenization
+## Cobo Fund Tokenization
 
 A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, bitcoin) into ERC20 share tokens with continuous NAV accrual.
 
-## Features
+### Features
 - **NAV Oracle**: Continuous APR-based price accrual
 - **Share Token**: ERC20-compliant fund shares with mint/redeem
 - **Asset Vault**: Secure custody with settlement operations
@@ -67,11 +79,17 @@ A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, b
 | FundToken Logic  | [`0xAc5021d88e8003D30CCE6b089A3982060907a917`](https://arbiscan.io/address/0xAc5021d88e8003D30CCE6b089A3982060907a917) |
 | Vault Logic      | [`0x7D89fD39EE0d40b3024814B8874df710f1edeA00`](https://arbiscan.io/address/0x7D89fD39EE0d40b3024814B8874df710f1edeA00) |
 
-📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for deployment and usage.
+| BSC Mainnet Contract | Address |
+|----------------------|---------|
+| Oracle Logic | [`0xc0601667705F8C96c2e2F452E494bd5CC3b262BA`](https://bscscan.com/address/0xc0601667705F8C96c2e2F452E494bd5CC3b262BA#code) |
+| FundToken Logic | [`0xAc5021d88e8003D30CCE6b089A3982060907a917`](https://bscscan.com/address/0xAc5021d88e8003D30CCE6b089A3982060907a917#code) |
+| Vault Logic | [`0x7D89fD39EE0d40b3024814B8874df710f1edeA00`](https://bscscan.com/address/0x7D89fD39EE0d40b3024814B8874df710f1edeA00#code) |
+
+See [Fund documentation](evm/src/Fund/README.md) for contract behavior, roles, security boundaries, and deployment information.
 
 ---
 
-# Cobo Tokenization Solana
+## Cobo Tokenization Solana
 
 ### Contracts
 
