@@ -67,7 +67,15 @@ A NAV-based fund tokenization system that wraps real-world assets (e.g., gold, b
 | FundToken Logic  | [`0xAc5021d88e8003D30CCE6b089A3982060907a917`](https://arbiscan.io/address/0xAc5021d88e8003D30CCE6b089A3982060907a917) |
 | Vault Logic      | [`0x7D89fD39EE0d40b3024814B8874df710f1edeA00`](https://arbiscan.io/address/0x7D89fD39EE0d40b3024814B8874df710f1edeA00) |
 
-📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for deployment and usage.
+| BSC Mainnet Contract | Address |
+|----------------------|---------|
+| Oracle Logic | [`0xc0601667705F8C96c2e2F452E494bd5CC3b262BA`](https://bscscan.com/address/0xc0601667705F8C96c2e2F452E494bd5CC3b262BA#code) |
+| FundToken Logic | [`0xAc5021d88e8003D30CCE6b089A3982060907a917`](https://bscscan.com/address/0xAc5021d88e8003D30CCE6b089A3982060907a917#code) |
+| Vault Logic | [`0x7D89fD39EE0d40b3024814B8874df710f1edeA00`](https://bscscan.com/address/0x7D89fD39EE0d40b3024814B8874df710f1edeA00#code) |
+
+These shared addresses identify a pinned implementation release, not necessarily the current source tree. Reproducing them requires the original deployment account, factory, salts, and exact creation bytecode. See [Fund logic deployment](evm/docs/fund-logic-deployment.md) for the release, bytecode hashes, BSC transactions, and verification commands. Logic deployment does not create a fund product or require NAV/APR parameters.
+
+📚 **Documentation**: See [evm/src/Fund/README.md](./evm/src/Fund/README.md) for product deployment and usage.
 
 ---
 
