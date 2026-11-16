@@ -1,201 +1,51 @@
-# Cobo ERC20 Tokenization
+# Cobo Tokenization EVM Contracts
 
-A sophisticated, upgradeable ERC20 token implementation with role-based access control, built using the Foundry framework and OpenZeppelin's upgradeable contracts.
+Upgradeable Solidity contracts for ERC20 tokens, wrapped assets, and NAV-based fund shares, built with Foundry and OpenZeppelin Contracts.
 
-## 🌟 Features
+## Modules
 
-### Core Token Functionality
-- **ERC20 Standard**: Full compliance with ERC20 token standard
-- **Upgradeable**: UUPS (Universal Upgradeable Proxy Standard) implementation
-- **Multicall Support**: Batch multiple function calls in a single transaction
+| Module | Contracts | Description |
+|--------|-----------|-------------|
+| [ERC20 and Wrapper](src/CoboERC20/README.md) | `CoboERC20`, `CoboERC20Wrapper` | Role-controlled tokens and ERC20 asset wrapping |
+| [Fund](src/Fund/README.md) | `CoboFundOracle`, `CoboFundToken`, `CoboFundVault` | NAV pricing, fund shares, asynchronous redemption, and asset custody |
 
-### Access Control & Security
-- **Role-Based Access Control**: Six distinct roles with specific permissions:
-  - `DEFAULT_ADMIN_ROLE`: Full administrative control
-  - `MINTER_ROLE`: Token minting permissions
-  - `BURNER_ROLE`: Token burning permissions
-  - `MANAGER_ROLE`: Contract management and token burning from any address
-  - `PAUSER_ROLE`: Emergency pause functionality
-  - `UPGRADER_ROLE`: Contract upgrade permissions
-  - `SALVAGER_ROLE`: Asset recovery capabilities
+## Source Layout
 
-### Advanced Features
-- **Pause/Unpause**: Emergency stop mechanism
-- **Access List Control**: Whitelist/blacklist functionality for transfers
-- **Asset Salvage**: Recovery of accidentally sent tokens or ETH
-- **Contract URI**: Metadata support for contract information
-
-## 🏗️ Architecture
-
-The project uses a modular architecture with the following components:
-
-```
+```text
 src/
-├── CoboERC20/
-│   ├── CoboERC20.sol          # Main token contract
-│   └── library/
-│       ├── Utils/             # Utility contracts
-│       └── Errors/            # Error definitions
-├── deploy/
-    └── ProxyFactory.sol       # Deployment factory
+├── CoboERC20/       # Token, wrapper, access lists, and error definitions
+├── Fund/           # Fund oracle, share token, and vault
+├── interfaces/     # Shared sanctions screening interface
+└── deploy/         # Proxy factory
+script/
+├── CoboERC20/      # ERC20 implementation scripts
+└── Fund/           # Fund implementation and product scripts
+test/               # Unit, integration, security, and upgrade tests
 ```
 
-## 🔧 Setup
+## Build and Test
 
-### Prerequisites
-- [Foundry](https://getfoundry.sh/) installed
-- Node.js and npm (optional, for additional tooling)
+[Foundry](https://getfoundry.sh/) is required. Run commands from `evm/` with dependencies matching [foundry.lock](foundry.lock). Dependency versions affect compiled bytecode; do not substitute newer versions when reproducing an existing release.
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd CoboTokenization
-   ```
-
-2. **Install dependencies**
-   ```bash
-   forge install OpenZeppelin/openzeppelin-contracts@v5.3.0 --no-git --shallow
-   forge install OpenZeppelin/openzeppelin-contracts-upgradeable@v5.3.0 --no-git --shallow
-   forge install foundry-rs/forge-std --no-git --shallow
-   ```
-
-3. **Build the project**
-   ```bash
-   forge build
-   ```
-
-## 🧪 Testing
-
-Run the test suite:
 ```bash
+forge build
 forge test
 ```
 
-For verbose output:
-```bash
-forge test -vvv
-```
+Build configuration is defined in [foundry.toml](foundry.toml): Solidity `0.8.23`, EVM `london`, optimizer enabled with `20000` runs, and `via_ir = true`.
 
-## 🚀 Deployment
+## Deployed Contracts
 
-### Manual Deployment
+See the [repository contract address list](../README.md) for networks, published addresses, and block explorer links. Module documentation describes the source in this checkout; a published implementation can represent a different source revision.
 
-You can also deploy manually by following these steps:
+EVM contracts use UUPS upgradeable implementations behind proxies. An implementation address is not a product token address. Interactions with an initialized token or fund use its proxy address. Implementation constructors disable initialization; proxy deployment and initialization must be atomic.
 
-1. Deploy the implementation contract
-2. Deploy a proxy pointing to the implementation
-3. Initialize the contract with required parameters
+## Security Model
 
-### Initialization Parameters
+Permissions are role-based. Administrators can grant and revoke roles; designated roles can mint, burn, pause, recover assets, or authorize upgrades according to the module. An upgrade can change contract behavior.
 
-When initializing the contract, provide:
-- `name`: Token name (e.g., "CoboERC20")
-- `symbol`: Token symbol (e.g., "COBO")
-- `uri`: Contract metadata URI
-- `decimal`: Token decimal
-- `admin`: Initial admin address (receives DEFAULT_ADMIN_ROLE)
+Optional address screening uses [ISanctionsOracle](src/interfaces/ISanctionsOracle.sol). It is not identity verification or a guarantee of regulatory compliance. Screening behavior, privileged exceptions, and oracle trust assumptions are documented in each module.
 
-## 📋 Usage
+## License
 
-### Basic Token Operations
-
-```solidity
-// Mint tokens (requires MINTER_ROLE)
-coboToken.mint(recipient, amount);
-
-// Burn tokens (requires BURNER_ROLE)
-coboToken.burn(amount);
-
-// Burn tokens from specific address (requires MANAGER_ROLE)
-coboToken.burnFrom(account, amount);
-```
-
-### Access Control
-
-```solidity
-// Grant roles (requires DEFAULT_ADMIN_ROLE)
-coboToken.grantRole(MINTER_ROLE, minterAddress);
-
-// Check role membership
-bool isMinter = coboToken.hasRole(MINTER_ROLE, address);
-
-// Revoke roles
-coboToken.revokeRole(MINTER_ROLE, address);
-```
-
-### Emergency Controls
-
-```solidity
-// Pause the contract (requires PAUSER_ROLE)
-coboToken.pause();
-
-// Unpause the contract (requires MANAGER_ROLE)
-coboToken.unpause();
-```
-
-## 🔐 Security Features
-
-### Role Permissions Matrix
-
-| Role | Mint | Burn Self | Burn Others | Pause | Unpause | Upgrade | Manage Access List | Salvage |
-|------|------|-----------|-------------|-------|---------|---------|-------------------|---------|
-| MINTER_ROLE | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| BURNER_ROLE | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| MANAGER_ROLE | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
-| PAUSER_ROLE | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| UPGRADER_ROLE | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| SALVAGER_ROLE | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| DEFAULT_ADMIN_ROLE | Grant/Revoke all roles | | | | | | | |
-
-### Access List Control
-- Configure allowed/denied addresses for transfers
-- Granular control over who can send/receive tokens
-- Useful for compliance and regulatory requirements
-
-## ⚙️ Configuration
-
-### Foundry Configuration
-
-The project is configured with:
-- Solidity version: 0.8.23
-- EVM version: London
-- Optimizer: Enabled with 20,000 runs
-- IR optimization: Enabled
-
-### Contract Configuration
-
-Key contract settings:
-- Upgradeable using UUPS pattern
-- Initializer-based setup
-- Comprehensive role-based access control
-
-## 🔍 Verification
-
-After deployment, verify your contracts on block explorers:
-
-```bash
-forge verify-contract <CONTRACT_ADDRESS> src/CoboERC20/CoboERC20.sol:CoboERC20 --etherscan-api-key <API_KEY>
-```
-
-## 📄 License
-
-This project is licensed under LGPL-3.0-only.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## 📞 Support
-
-For questions or support, please contact the Cobo development team at [https://www.cobo.com/](https://www.cobo.com/).
-
----
-
-Built with ❤️ by the Cobo team
+LGPL-3.0-only. See [LICENSE.txt](../LICENSE.txt).
