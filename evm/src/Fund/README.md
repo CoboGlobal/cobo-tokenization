@@ -80,33 +80,29 @@ Test files:
 
 ## Deployment
 
-Logic deployment and product deployment are separate operations. Deploy the three implementations once per release and chain, then create product proxies with their own underlying assets and NAV/APR parameters. Deploying implementations alone does not require product parameters and must not initialize the implementation contracts.
+Deploy logic contracts once, then deploy multiple product instances with different underlying assets.
 
-### Step 1: Select or deploy logic contracts
-
-For the shared implementation addresses listed in the [root README](../../../README.md#logic-contracts), use the pinned release and exact bytecode described in [Fund logic deployment](../../docs/fund-logic-deployment.md). The current checkout may compile to different addresses even with the same account and salts.
-
-For a **new implementation release**, run from `evm/` and simulate before broadcasting:
+### Step 1: Deploy logic contracts
 
 ```bash
-forge script script/Fund/DeployFundLogic.s.sol:DeployFundLogic \
-  --rpc-url "$RPC_URL" --sender "$DEPLOYER"
+forge script script/DeployFundLogic.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+
+# Save the output addresses
+export ORACLE_LOGIC=0x...
+export FUNDTOKEN_LOGIC=0x...
+export VAULT_LOGIC=0x...
 ```
-
-Only after reviewing the simulation, use the intended signer and add `--broadcast`. Verify the three implementations separately using the same source and build configuration. Save the resulting addresses as `ORACLE_LOGIC`, `FUNDTOKEN_LOGIC`, and `VAULT_LOGIC`.
-
-The following steps create and configure a **product**, not additional implementations. Use an existing production asset on mainnet; Step 2 is testnet-only.
 
 ### Step 2: Deploy Mock ERC20 (Testnet only)
 
 ```bash
 # Deploy mock asset token
-forge script script/Fund/DeployMockERC20.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/DeployMockERC20.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 
 export ASSET_TOKEN=0x...
 ```
 
-**Note**: Edit `script/Fund/DeployMockERC20.s.sol` to change token parameters for different assets (WBTC, etc.).
+**Note**: Edit `script/DeployMockERC20.s.sol` to change token parameters for different assets (WBTC, etc.).
 
 ### Step 3: Configure product parameters
 
@@ -143,7 +139,7 @@ export SETTLEMENT_OPERATOR=0x...
 ### Step 4: Deploy product proxy
 
 ```bash
-forge script script/Fund/DeployFundProxyTemplate.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+forge script script/DeployFundProxyTemplate.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
 
 # Extract addresses from output
 export ORACLE_PROXY=0x...
@@ -154,7 +150,7 @@ export VAULT_PROXY=0x...
 ### Step 5: Configure roles
 
 ```bash
-forge script script/Fund/PostDeployConfig.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/PostDeployConfig.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 Grants roles from Step 3 to their respective addresses and installs the sanctions oracle if `SANCTIONS_ORACLE` is set (optional).
@@ -172,7 +168,7 @@ Grants roles from Step 3 to their respective addresses and installs the sanction
 
 ### Detailed Instructions
 
-See [Fund logic deployment](../../docs/fund-logic-deployment.md) for implementation releases, deterministic addresses, BSC deployment records, and source verification. Product parameters and role configuration are described above.
+See `/tmp/fund-deployment-commands.md` for complete step-by-step deployment guide with troubleshooting.
 
 ## License
 
